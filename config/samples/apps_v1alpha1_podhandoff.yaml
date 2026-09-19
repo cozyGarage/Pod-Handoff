@@ -1,0 +1,9 @@
+apiVersion: apps.podhandoff.io/v1alpha1
+kind: PodHandoff
+metadata:
+  labels:
+    app.kubernetes.io/name: podhandoff
+    app.kubernetes.io/managed-by: kustomize
+  name: podhandoff-sample
+spec:
+  # TODO(user): Add fields here

@@ -1,0 +1,80 @@
+{{- if .Values.rbac.create }}
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: {{ include "podhandoff.fullname" . }}
+  labels:
+    {{- include "podhandoff.labels" . | nindent 4 }}
+rules:
+  - apiGroups: ["apps.podhandoff.io"]
+    resources: ["podhandoffs"]
+    verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
+  - apiGroups: ["apps.podhandoff.io"]
+    resources: ["podhandoffs/status"]
+    verbs: ["get", "update", "patch"]
+  - apiGroups: ["apps.podhandoff.io"]
+    resources: ["podhandoffs/finalizers"]
+    verbs: ["update"]
+  - apiGroups: ["apps"]
+    resources: ["deployments"]
+    verbs: ["get", "list", "watch", "update", "patch"]
+  - apiGroups: ["policy"]
+    resources: ["poddisruptionbudgets"]
+    verbs: ["get", "list", "delete"]
+  - apiGroups: [""]
+    resources: ["pods"]
+    verbs: ["get", "list", "watch", "update", "patch"]
+  - apiGroups: [""]
+    resources: ["nodes"]
+    verbs: ["get", "list", "watch"]
+  - apiGroups: [""]
+    resources: ["events"]
+    verbs: ["get", "list", "watch", "create", "patch"]
+  - apiGroups: ["events.k8s.io"]
+    resources: ["events"]
+    verbs: ["create", "patch"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: {{ include "podhandoff.fullname" . }}
+  labels:
+    {{- include "podhandoff.labels" . | nindent 4 }}
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: {{ include "podhandoff.fullname" . }}
+subjects:
+  - kind: ServiceAccount
+    name: {{ include "podhandoff.serviceAccountName" . }}
+    namespace: {{ .Release.Namespace }}
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: {{ include "podhandoff.fullname" . }}-leader-election
+  labels:
+    {{- include "podhandoff.labels" . | nindent 4 }}
+rules:
+  - apiGroups: ["coordination.k8s.io"]
+    resources: ["leases"]
+    verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
+  - apiGroups: [""]
+    resources: ["events"]
+    verbs: ["create", "patch"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: {{ include "podhandoff.fullname" . }}-leader-election
+  labels:
+    {{- include "podhandoff.labels" . | nindent 4 }}
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: {{ include "podhandoff.fullname" . }}-leader-election
+subjects:
+  - kind: ServiceAccount
+    name: {{ include "podhandoff.serviceAccountName" . }}
+    namespace: {{ .Release.Namespace }}
+{{- end }}

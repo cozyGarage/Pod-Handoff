@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 860 220" role="img" aria-labelledby="title desc">
+  <title id="title">PodHandoff</title>
+  <desc id="desc">Two pods connected by a readiness handoff arrow.</desc>
+  <defs>
+    <linearGradient id="g" x1="0" x2="1">
+      <stop offset="0" stop-color="#2563eb"/>
+      <stop offset="1" stop-color="#14b8a6"/>
+    </linearGradient>
+  </defs>
+  <rect width="860" height="220" rx="34" fill="#0f172a"/>
+  <g transform="translate(38 38)" fill="none" stroke="url(#g)" stroke-width="12" stroke-linecap="round" stroke-linejoin="round">
+    <rect x="0" y="24" width="100" height="100" rx="24"/>
+    <rect x="220" y="24" width="100" height="100" rx="24"/>
+    <path d="M116 50h70l-22-22m22 22-22 22"/>
+    <path d="M204 98h-70l22-22m-22 22 22 22" opacity=".55"/>
+  </g>
+  <text x="395" y="137" fill="#f8fafc" font-family="ui-sans-serif, system-ui, sans-serif" font-size="72" font-weight="700">PodHandoff</text>
+</svg>

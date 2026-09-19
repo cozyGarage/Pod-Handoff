@@ -1,0 +1,64 @@
+image:
+  repository: ghcr.io/cozyGarage/podhandoff
+  tag: ""
+  pullPolicy: IfNotPresent
+
+imagePullSecrets: []
+
+replicaCount: 1
+
+signals:
+  cordonAdapter: true
+  taintAdapter: true
+  doomTaintKeys:
+    - karpenter.sh/disrupted
+    - ToBeDeletedByClusterAutoscaler
+    - DeletionCandidateOfClusterAutoscaler
+
+webhook:
+  timeoutSeconds: 2
+  namespaceSelector: {}
+
+sentinel:
+  enabled: false
+  cloud: auto
+  surgeOnRebalance: false
+  priorityClassName: system-node-critical
+  nodeSelector: {}
+  tolerations:
+    - operator: Exists
+  resources:
+    requests:
+      cpu: 10m
+      memory: 32Mi
+    limits:
+      memory: 64Mi
+
+leaderElection:
+  enabled: true
+
+resources:
+  requests:
+    cpu: 20m
+    memory: 64Mi
+  limits:
+    memory: 128Mi
+
+nodeSelector: {}
+tolerations: []
+affinity: {}
+
+serviceAccount:
+  create: true
+  name: ""
+
+rbac:
+  create: true
+
+metrics:
+  bindAddress: ":8080"
+  secure: false
+  service:
+    enabled: true
+    port: 8080
+    annotations: {}

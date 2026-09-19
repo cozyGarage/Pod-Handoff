@@ -1,0 +1,81 @@
+{{- $fullname := include "podhandoff.fullname" . }}
+{{- $svc := printf "%s-webhook" $fullname }}
+{{- $secretName := printf "%s-webhook-cert" $fullname }}
+{{- $altNames := list (printf "%s.%s.svc" $svc .Release.Namespace) (printf "%s.%s.svc.cluster.local" $svc .Release.Namespace) }}
+{{- $ca := genCA (printf "%s-ca" $fullname) 3650 }}
+{{- $cert := genSignedCert $svc nil $altNames 3650 $ca }}
+{{- $caCert := $ca.Cert }}
+{{- $tlsCert := $cert.Cert }}
+{{- $tlsKey := $cert.Key }}
+{{- $existingSecret := lookup "v1" "Secret" .Release.Namespace $secretName }}
+{{- $existingWebhook := lookup "admissionregistration.k8s.io/v1" "ValidatingWebhookConfiguration" "" (printf "%s-eviction-hold" $fullname) }}
+{{- if not $existingWebhook }}
+{{- $existingWebhook = lookup "admissionregistration.k8s.io/v1" "ValidatingWebhookConfiguration" "" (printf "%s-eviction-observer" $fullname) }}
+{{- end }}
+{{- if and $existingSecret (get $existingSecret.data "tls.crt") (get $existingSecret.data "tls.key") }}
+{{- $tlsCert = get $existingSecret.data "tls.crt" | b64dec }}
+{{- $tlsKey = get $existingSecret.data "tls.key" | b64dec }}
+{{- if get $existingSecret.data "ca.crt" }}
+{{- $caCert = get $existingSecret.data "ca.crt" | b64dec }}
+{{- else if and $existingWebhook $existingWebhook.webhooks }}
+{{- $caCert = (index $existingWebhook.webhooks 0).clientConfig.caBundle | b64dec }}
+{{- end }}
+{{- end }}
+apiVersion: v1
+kind: Secret
+metadata:
+  name: {{ $secretName }}
+  labels:
+    {{- include "podhandoff.labels" . | nindent 4 }}
+  annotations:
+    helm.sh/resource-policy: keep
+type: kubernetes.io/tls
+data:
+  ca.crt: {{ $caCert | b64enc }}
+  tls.crt: {{ $tlsCert | b64enc }}
+  tls.key: {{ $tlsKey | b64enc }}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ $svc }}
+  labels:
+    {{- include "podhandoff.labels" . | nindent 4 }}
+spec:
+  selector:
+    {{- include "podhandoff.selectorLabels" . | nindent 4 }}
+  ports:
+    - name: webhook
+      port: 443
+      targetPort: webhook
+---
+apiVersion: admissionregistration.k8s.io/v1
+kind: ValidatingWebhookConfiguration
+metadata:
+  name: {{ $fullname }}-eviction-hold
+  labels:
+    {{- include "podhandoff.labels" . | nindent 4 }}
+webhooks:
+  - name: eviction-hold.podhandoff.io
+    admissionReviewVersions: ["v1"]
+    sideEffects: NoneOnDryRun
+    matchPolicy: Equivalent
+    failurePolicy: Ignore
+    timeoutSeconds: {{ .Values.webhook.timeoutSeconds }}
+    clientConfig:
+      service:
+        name: {{ $svc }}
+        namespace: {{ .Release.Namespace }}
+        path: /observe-eviction
+        port: 443
+      caBundle: {{ $caCert | b64enc }}
+    rules:
+      - apiGroups: [""]
+        apiVersions: ["v1"]
+        operations: ["CREATE"]
+        resources: ["pods/eviction"]
+        scope: Namespaced
+    {{- with .Values.webhook.namespaceSelector }}
+    namespaceSelector:
+      {{- toYaml . | nindent 6 }}
+    {{- end }}

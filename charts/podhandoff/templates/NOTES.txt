@@ -1,0 +1,26 @@
+PodHandoff is installed.
+
+Give a Deployment an podhandoff:
+
+  apiVersion: apps.podhandoff.io/v1alpha1
+  kind: PodHandoff
+  metadata:
+    name: tenant-worker
+    namespace: my-namespace
+  spec:
+    targetRef:
+      kind: Deployment
+      name: tenant-worker
+    holdMode: always          # always | voluntary-only | off
+    minSurgeTimeSeconds: 60   # your realistic signal -> traffic-ready time
+    readinessDeadlineSeconds: 600
+
+Alert on the metric podhandoff_oldest_blocked_eviction_seconds: a blocked
+drain must page a human, never wedge a node.
+
+ESCAPE HATCH - delete the fail-open webhook configuration to disable holds
+immediately:
+
+  kubectl delete validatingwebhookconfiguration {{ include "podhandoff.fullname" . }}-eviction-hold
+
+If every operator replica is unavailable, Kubernetes admits evictions normally.

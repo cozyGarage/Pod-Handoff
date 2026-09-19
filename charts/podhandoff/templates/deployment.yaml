@@ -1,0 +1,90 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "podhandoff.fullname" . }}
+  labels:
+    {{- include "podhandoff.labels" . | nindent 4 }}
+spec:
+  replicas: {{ .Values.replicaCount }}
+  selector:
+    matchLabels:
+      {{- include "podhandoff.selectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      labels:
+        {{- include "podhandoff.selectorLabels" . | nindent 8 }}
+    spec:
+      serviceAccountName: {{ include "podhandoff.serviceAccountName" . }}
+      {{- with .Values.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      securityContext:
+        runAsNonRoot: true
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: manager
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          args:
+            - --health-probe-bind-address=:8081
+            - --metrics-bind-address={{ .Values.metrics.bindAddress }}
+            - --metrics-secure={{ .Values.metrics.secure }}
+            {{- if .Values.leaderElection.enabled }}
+            - --leader-elect
+            {{- end }}
+            - --enable-cordon-adapter={{ .Values.signals.cordonAdapter }}
+            - --enable-taint-adapter={{ .Values.signals.taintAdapter }}
+            - --doom-taint-keys={{ join "," .Values.signals.doomTaintKeys }}
+            - --webhook-cert-path=/tmp/k8s-webhook-server/serving-certs
+          env:
+            - name: OPERATOR_NAMESPACE
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.namespace
+            - name: OPERATOR_DEPLOYMENT
+              value: {{ include "podhandoff.fullname" . }}
+          ports:
+            - name: probes
+              containerPort: 8081
+            - name: metrics
+              containerPort: {{ regexReplaceAll "^.*:" .Values.metrics.bindAddress "" }}
+            - name: webhook
+              containerPort: 9443
+          volumeMounts:
+            - name: webhook-cert
+              mountPath: /tmp/k8s-webhook-server/serving-certs
+              readOnly: true
+          livenessProbe:
+            httpGet:
+              path: /healthz
+              port: probes
+            initialDelaySeconds: 5
+          readinessProbe:
+            httpGet:
+              path: /readyz
+              port: probes
+            initialDelaySeconds: 5
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop: ["ALL"]
+          resources:
+            {{- toYaml .Values.resources | nindent 12 }}
+      volumes:
+        - name: webhook-cert
+          secret:
+            secretName: {{ include "podhandoff.fullname" . }}-webhook-cert
+      {{- with .Values.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}

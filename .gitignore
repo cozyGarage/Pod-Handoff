@@ -1,0 +1,7 @@
+bin/
+cover.out
+*.swp
+dist/
+AGENTS.md
+ANALYSIS.md
+LIVE-TEST-FINDINGS.md
