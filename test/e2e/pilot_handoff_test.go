@@ -157,6 +157,7 @@ spec:
 		oldNode, err := kubectl("get", "pod", oldPod, "-n", pilotNamespace, "-o", "jsonpath={.spec.nodeName}")
 		Expect(err).NotTo(HaveOccurred())
 		oldNode = strings.TrimSpace(oldNode)
+		var standInPod string
 
 		By("announcing the planned disruption and waiting for an unready stand-in")
 		_, err = kubectl("cordon", oldNode)
@@ -171,7 +172,13 @@ spec:
 				"jsonpath={range .items[*]}{.metadata.name}={.status.conditions[?(@.type=='Ready')].status}{'\\n'}{end}")
 			g.Expect(getErr).NotTo(HaveOccurred())
 			g.Expect(ready).To(ContainSubstring(oldPod + "=True"))
-			g.Expect(ready).To(ContainSubstring("=False"))
+			for line := range strings.SplitSeq(ready, "\n") {
+				name, condition, found := strings.Cut(line, "=")
+				if found && name != oldPod && condition == "False" {
+					standInPod = name
+				}
+			}
+			g.Expect(standInPod).NotTo(BeEmpty())
 		}).Should(Succeed())
 
 		By("starting a real drain and proving eviction remains held before readiness")
@@ -188,10 +195,10 @@ spec:
 
 		By("waiting for readiness to release eviction")
 		Eventually(func(g Gomega) {
-			readyCount, getErr := kubectl("get", "deployment", "canary", "-n", pilotNamespace,
-				"-o", "jsonpath={.status.readyReplicas}")
+			ready, getErr := kubectl("get", "pod", standInPod, "-n", pilotNamespace,
+				"-o", "jsonpath={.status.conditions[?(@.type=='Ready')].status}")
 			g.Expect(getErr).NotTo(HaveOccurred())
-			g.Expect(strings.TrimSpace(readyCount)).To(Equal("2"))
+			g.Expect(strings.TrimSpace(ready)).To(Equal("True"))
 		}, 2*time.Minute).Should(Succeed())
 		Eventually(drainDone, 2*time.Minute).Should(Receive(BeNil()))
 
