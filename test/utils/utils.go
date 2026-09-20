@@ -24,6 +24,7 @@ import (
 	"os"
 	"os/exec"
 	"strings"
+	"time"
 
 	. "github.com/onsi/ginkgo/v2" // nolint:revive,staticcheck
 )
@@ -92,7 +93,30 @@ func InstallCertManager() error {
 	)
 
 	_, err := Run(cmd)
-	return err
+	if err != nil {
+		return err
+	}
+
+	const issuer = `apiVersion: cert-manager.io/v1
+kind: Issuer
+metadata:
+  name: e2e-readiness-check
+  namespace: cert-manager
+spec:
+  selfSigned: {}
+`
+	deadline := time.Now().Add(5 * time.Minute)
+	for {
+		cmd = exec.Command("kubectl", "apply", "--dry-run=server", "-f", "-")
+		cmd.Stdin = strings.NewReader(issuer)
+		if _, err = Run(cmd); err == nil {
+			return nil
+		}
+		if time.Now().After(deadline) {
+			return fmt.Errorf("cert-manager admission did not become ready: %w", err)
+		}
+		time.Sleep(2 * time.Second)
+	}
 }
 
 func IsCertManagerCRDsInstalled() bool {

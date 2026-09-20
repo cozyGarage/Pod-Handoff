@@ -79,6 +79,7 @@ type podAssessment struct {
 // +kubebuilder:rbac:groups=apps.podhandoff.io,resources=podhandoffs/status,verbs=get;update;patch
 // +kubebuilder:rbac:groups=apps.podhandoff.io,resources=podhandoffs/finalizers,verbs=update
 // +kubebuilder:rbac:groups=apps,resources=deployments,verbs=get;list;watch;update;patch
+// +kubebuilder:rbac:groups=apps,resources=replicasets,verbs=get;list;watch
 // +kubebuilder:rbac:groups=policy,resources=poddisruptionbudgets,verbs=get;list;delete
 // +kubebuilder:rbac:groups="",resources=pods,verbs=get;list;watch;update;patch
 // +kubebuilder:rbac:groups="",resources=nodes,verbs=get;list;watch

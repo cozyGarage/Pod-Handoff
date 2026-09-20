@@ -34,6 +34,7 @@ import (
 
 var (
 	managerImage             = "example.com/podhandoff:v0.0.1"
+	canaryImage              = "example.com/podhandoff-e2e-canary:v0.0.1"
 	shouldCleanupCertManager = false
 )
 
@@ -53,11 +54,22 @@ var _ = BeforeSuite(func() {
 	err = utils.LoadImageToKindClusterWithName(managerImage)
 	ExpectWithOffset(1, err).NotTo(HaveOccurred(), "Failed to load the manager image into Kind")
 
+	By("building the synthetic HTTP canary image")
+	cmd = exec.Command("docker", "build", "-f", "test/e2e/canary/Dockerfile", "-t", canaryImage, ".")
+	_, err = utils.Run(cmd)
+	ExpectWithOffset(1, err).NotTo(HaveOccurred(), "Failed to build the canary image")
+
+	By("loading the synthetic HTTP canary image on Kind")
+	err = utils.LoadImageToKindClusterWithName(canaryImage)
+	ExpectWithOffset(1, err).NotTo(HaveOccurred(), "Failed to load the canary image into Kind")
+
 	configureKubectlKubeRC()
 	setupCertManager()
+	setupManager()
 })
 
 var _ = AfterSuite(func() {
+	teardownManager()
 	teardownCertManager()
 })
 

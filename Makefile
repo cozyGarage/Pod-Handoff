@@ -70,6 +70,9 @@ test: manifests generate fmt vet setup-envtest ## Run tests.
 # CertManager is installed by default; skip with:
 # - CERT_MANAGER_INSTALL_SKIP=true
 KIND_CLUSTER ?= podhandoff-test-e2e
+KIND_CONFIG ?= test/e2e/kind.yaml
+KIND_NODE_IMAGE ?= kindest/node:v1.35.0@sha256:452d707d4862f52530247495d180205e029056831160e22870e37e3f6c1ac31f
+E2E_ARGS ?=
 
 .PHONY: setup-test-e2e
 setup-test-e2e: ## Set up a Kind cluster for e2e tests if it does not exist
@@ -81,14 +84,17 @@ setup-test-e2e: ## Set up a Kind cluster for e2e tests if it does not exist
 		*"$(KIND_CLUSTER)"*) \
 			echo "Kind cluster '$(KIND_CLUSTER)' already exists. Skipping creation." ;; \
 		*) \
-			echo "Creating Kind cluster '$(KIND_CLUSTER)'..."; \
-			$(KIND) create cluster --name $(KIND_CLUSTER) ;; \
+			echo "Creating Kind cluster '$(KIND_CLUSTER)' from $(KIND_CONFIG)..."; \
+			$(KIND) create cluster --name $(KIND_CLUSTER) --config $(KIND_CONFIG) \
+				--image $(KIND_NODE_IMAGE) ;; \
 	esac
 
 .PHONY: test-e2e
 test-e2e: setup-test-e2e manifests generate fmt vet ## Run the e2e tests. Expected an isolated environment using Kind.
-	KIND=$(KIND) KIND_CLUSTER=$(KIND_CLUSTER) go test -tags=e2e ./test/e2e/ -v -ginkgo.v
-	$(MAKE) cleanup-test-e2e
+	@status=0; \
+		KIND=$(KIND) KIND_CLUSTER=$(KIND_CLUSTER) go test -tags=e2e ./test/e2e/ -v -ginkgo.v $(E2E_ARGS) || status=$$?; \
+		$(MAKE) cleanup-test-e2e KIND=$(KIND) KIND_CLUSTER=$(KIND_CLUSTER); \
+		exit $$status
 
 .PHONY: cleanup-test-e2e
 cleanup-test-e2e: ## Tear down the Kind cluster used for e2e tests
