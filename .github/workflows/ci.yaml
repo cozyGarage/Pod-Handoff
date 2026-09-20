@@ -56,3 +56,21 @@ jobs:
         run: make chart-check
       - name: GitOps field-ownership contract
         run: make gitops-check
+
+  license-and-sbom:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+      - name: Verify licensing baseline
+        run: make license-check
+      - name: Generate CycloneDX SBOM
+        run: make sbom SBOM_OUT=artifacts/podhandoff.cdx.json
+      - name: Upload CycloneDX SBOM
+        uses: actions/upload-artifact@v4
+        with:
+          name: podhandoff-cyclonedx-sbom
+          path: artifacts/podhandoff.cdx.json
+          if-no-files-found: error

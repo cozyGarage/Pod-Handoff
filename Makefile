@@ -114,6 +114,14 @@ chart-check: ## Verify the chart's Artifact Hub metadata tracks appVersion
 gitops-check: ## Verify the controller and GitOps field-ownership documentation agree.
 	./hack/check-gitops-contract.sh
 
+.PHONY: license-check
+license-check: ## Verify Apache-2.0 provenance and identify Go dependency-license gaps.
+	./hack/check-license-baseline.sh
+
+.PHONY: sbom
+sbom: ## Generate a CycloneDX JSON SBOM at SBOM_OUT (default: dist/podhandoff.cdx.json).
+	./hack/generate-sbom.sh "$(SBOM_OUT)"
+
 .PHONY: release
 release: ## Push the multi-arch image and the chart for VERSION, from a tagged clean tree.
 	./hack/release.sh $(VERSION)
@@ -215,6 +223,7 @@ ENVTEST_K8S_VERSION ?= $(shell v='$(call gomodver,k8s.io/api)'; \
 
 GOLANGCI_LINT_VERSION ?= v2.12.2
 LINT_GO_TOOLCHAIN ?= go$(shell awk '/^go / { print $$2; exit }' go.mod)
+SBOM_OUT ?= dist/podhandoff.cdx.json
 .PHONY: kustomize
 kustomize: $(KUSTOMIZE) ## Download kustomize locally if necessary.
 $(KUSTOMIZE): $(LOCALBIN)

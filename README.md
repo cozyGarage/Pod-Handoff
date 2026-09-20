@@ -19,6 +19,9 @@ exists only while the disruption is in flight.
 PodHandoff is derived from [Understudy](UPSTREAM.md). The imported baseline,
 local changes, and attribution are recorded explicitly there.
 
+The product boundary, safety principles, and pilot narrative are in
+[Project direction](docs/project-direction.md).
+
 ```yaml
 apiVersion: apps.podhandoff.io/v1alpha1
 kind: PodHandoff
@@ -270,3 +273,7 @@ make build
 ## License
 
 Apache 2.0
+
+PodHandoff retains Apache-2.0 licensing and its upstream provenance. Run
+`make license-check` to verify that baseline and report dependency-license
+gaps; run `make sbom` to generate a CycloneDX dependency inventory.
