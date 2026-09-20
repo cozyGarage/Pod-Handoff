@@ -23,11 +23,16 @@ jobs:
         with:
           go-version-file: go.mod
 
-      - name: Install the latest version of kind
+      - name: Install pinned kind
+        env:
+          KIND_VERSION: v0.33.0
         run: |
-          curl -Lo ./kind https://kind.sigs.k8s.io/dl/latest/kind-linux-$(go env GOARCH)
-          chmod +x ./kind
-          sudo mv ./kind /usr/local/bin/kind
+          KIND_ARCH=$(go env GOARCH)
+          curl -fL -o ./kind-linux-${KIND_ARCH} https://kind.sigs.k8s.io/dl/${KIND_VERSION}/kind-linux-${KIND_ARCH}
+          curl -fL -o ./kind.sha256sum https://kind.sigs.k8s.io/dl/${KIND_VERSION}/kind-linux-${KIND_ARCH}.sha256sum
+          sha256sum -c ./kind.sha256sum
+          chmod +x ./kind-linux-${KIND_ARCH}
+          sudo mv ./kind-linux-${KIND_ARCH} /usr/local/bin/kind
 
       - name: Verify kind installation
         run: kind version
