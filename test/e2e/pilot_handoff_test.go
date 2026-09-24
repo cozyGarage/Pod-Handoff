@@ -216,6 +216,64 @@ spec:
 			g.Expect(strings.TrimSpace(base)).To(BeEmpty())
 		}).Should(Succeed())
 	})
+
+	It("relaxes the eviction hold when the stand-in cannot become Ready", func() {
+		oldPod, err := kubectl("get", "pods", "-n", pilotNamespace,
+			"-l", "app=podhandoff-e2e-canary", "-o", "jsonpath={.items[0].metadata.name}")
+		Expect(err).NotTo(HaveOccurred())
+		oldPod = strings.TrimSpace(oldPod)
+		oldNode, err := kubectl("get", "pod", oldPod, "-n", pilotNamespace, "-o", "jsonpath={.spec.nodeName}")
+		Expect(err).NotTo(HaveOccurred())
+		oldNode = strings.TrimSpace(oldNode)
+
+		By("using a short safety deadline and making every eligible replacement node unschedulable")
+		_, err = kubectl("patch", "podhandoff", "canary", "-n", pilotNamespace, "--type=merge", "-p",
+			`{"spec":{"readinessDeadlineSeconds":15}}`)
+		Expect(err).NotTo(HaveOccurred())
+		_, err = kubectl("cordon", oldNode)
+		Expect(err).NotTo(HaveOccurred())
+
+		Eventually(func(g Gomega) {
+			replicas, getErr := kubectl("get", "deployment", "canary", "-n", pilotNamespace,
+				"-o", "jsonpath={.spec.replicas}")
+			g.Expect(getErr).NotTo(HaveOccurred())
+			g.Expect(strings.TrimSpace(replicas)).To(Equal("2"))
+			phase, getErr := kubectl("get", "podhandoff", "canary", "-n", pilotNamespace,
+				"-o", "jsonpath={.status.phase}")
+			g.Expect(getErr).NotTo(HaveOccurred())
+			g.Expect(strings.TrimSpace(phase)).To(Equal("Surging"))
+			pending, getErr := kubectl("get", "pods", "-n", pilotNamespace,
+				"-l", "app=podhandoff-e2e-canary", "--field-selector=status.phase=Pending",
+				"-o", "jsonpath={.items[0].metadata.name}")
+			g.Expect(getErr).NotTo(HaveOccurred())
+			g.Expect(strings.TrimSpace(pending)).NotTo(BeEmpty())
+		}).Should(Succeed())
+
+		By("starting a real drain and proving the hold is active before its deadline")
+		drainDone := make(chan error, 1)
+		go func() {
+			_, drainErr := kubectl("drain", oldNode, "--ignore-daemonsets", "--delete-emptydir-data",
+				"--pod-selector=app=podhandoff-e2e-canary", "--timeout=2m")
+			drainDone <- drainErr
+		}()
+		Consistently(func() error {
+			_, getErr := kubectl("get", "pod", oldPod, "-n", pilotNamespace)
+			return getErr
+		}, 3*time.Second, time.Second).Should(Succeed(), "the old Pod must remain before the readiness deadline")
+
+		By("observing the deadline escape and successful eviction without a ready stand-in")
+		Eventually(func(g Gomega) {
+			phase, getErr := kubectl("get", "podhandoff", "canary", "-n", pilotNamespace,
+				"-o", "jsonpath={.status.phase}")
+			g.Expect(getErr).NotTo(HaveOccurred())
+			g.Expect(strings.TrimSpace(phase)).To(Equal("Relaxed"))
+		}, 30*time.Second).Should(Succeed())
+		Eventually(drainDone, 2*time.Minute).Should(Receive(BeNil()))
+		Eventually(func() error {
+			_, getErr := kubectl("get", "pod", oldPod, "-n", pilotNamespace)
+			return getErr
+		}).Should(HaveOccurred())
+	})
 })
 
 func kubectl(args ...string) (string, error) {
