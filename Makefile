@@ -116,6 +116,10 @@ lint-config: golangci-lint ## Verify golangci-lint linter configuration
 chart-check: ## Verify the chart's Artifact Hub metadata tracks appVersion
 	./hack/check-chart-metadata.sh
 
+.PHONY: sentinel-chart-check
+sentinel-chart-check: ## Verify the rendered sentinel command is accepted by the sentinel binary.
+	./hack/check-sentinel-chart.sh
+
 .PHONY: gitops-check
 gitops-check: ## Verify the controller and GitOps field-ownership documentation agree.
 	./hack/check-gitops-contract.sh

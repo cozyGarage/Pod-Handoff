@@ -48,10 +48,15 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: azure/setup-helm@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
       - name: Helm lint + template
         run: |
           helm lint charts/podhandoff
           helm template smoke charts/podhandoff > /dev/null
+      - name: Sentinel chart command matches binary
+        run: make sentinel-chart-check
       - name: Chart metadata tracks appVersion
         run: make chart-check
       - name: GitOps field-ownership contract

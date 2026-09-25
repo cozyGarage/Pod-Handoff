@@ -34,6 +34,7 @@ import (
 	"k8s.io/client-go/tools/events"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"sigs.k8s.io/controller-runtime/pkg/handler"
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/source"
@@ -49,6 +50,7 @@ const (
 	AnnotationPreviousDeletionCost = "podhandoff.io/previous-pod-deletion-cost"
 	LabelOwned                     = "podhandoff.io/owned"
 	PodDeletionCostAnnotation      = "controller.kubernetes.io/pod-deletion-cost"
+	PodHandoffFinalizer            = "apps.podhandoff.io/cleanup"
 	doomedPodDeletionCost          = "-1000"
 
 	relaxReasonTTL      = "ttl"
@@ -95,6 +97,15 @@ func (r *PodHandoffReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 		}
 		return ctrl.Result{}, err
 	}
+	if !cr.DeletionTimestamp.IsZero() {
+		return ctrl.Result{}, r.finalize(ctx, &cr, req)
+	}
+	if !controllerutil.ContainsFinalizer(&cr, PodHandoffFinalizer) {
+		patched := cr.DeepCopy()
+		controllerutil.AddFinalizer(patched, PodHandoffFinalizer)
+		return ctrl.Result{}, r.Patch(ctx, patched, client.MergeFrom(&cr))
+	}
+
 	status := *cr.Status.DeepCopy()
 
 	if kind := cr.Spec.TargetRef.Kind; kind != "" && kind != "Deployment" {
@@ -161,6 +172,46 @@ func (r *PodHandoffReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 	default:
 		return r.reconcileDoomed(ctx, &cr, &dep, status, assessment, base, surgeActive, surgeReady, relaxReason, ttlExpired, req)
 	}
+}
+
+func (r *PodHandoffReconciler) finalize(ctx context.Context, cr *appsv1alpha1.PodHandoff, req ctrl.Request) error {
+	if !controllerutil.ContainsFinalizer(cr, PodHandoffFinalizer) {
+		return nil
+	}
+
+	if kind := cr.Spec.TargetRef.Kind; kind == "" || kind == "Deployment" {
+		var dep appsv1.Deployment
+		err := r.Get(ctx, types.NamespacedName{Namespace: cr.Namespace, Name: cr.Spec.TargetRef.Name}, &dep)
+		switch {
+		case err == nil:
+			assessment, assessErr := r.assessPods(ctx, cr, &dep)
+			if assessErr != nil {
+				return assessErr
+			}
+			if clearErr := r.clearDeletionCosts(ctx, assessment.all); clearErr != nil {
+				return clearErr
+			}
+			if rawBase, surged := dep.Annotations[AnnotationBaseReplicas]; surged {
+				base, parseErr := strconv.ParseInt(rawBase, 10, 32)
+				if parseErr != nil {
+					return fmt.Errorf("restore Deployment %s/%s: invalid %s annotation %q: %w",
+						dep.Namespace, dep.Name, AnnotationBaseReplicas, rawBase, parseErr)
+				}
+				if scaleErr := r.scaleTo(ctx, &dep, int32(base)); scaleErr != nil {
+					return scaleErr
+				}
+			}
+		case apierrors.IsNotFound(err):
+			// The target is already gone, so there is no workload state left to restore.
+		default:
+			return err
+		}
+	}
+
+	metrics.UntrackBlocked(req.String())
+	patched := cr.DeepCopy()
+	controllerutil.RemoveFinalizer(patched, PodHandoffFinalizer)
+	return r.Patch(ctx, patched, client.MergeFrom(cr))
 }
 
 func (r *PodHandoffReconciler) assessPods(ctx context.Context, cr *appsv1alpha1.PodHandoff, dep *appsv1.Deployment) (podAssessment, error) {

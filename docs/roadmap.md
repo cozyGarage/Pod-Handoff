@@ -28,6 +28,10 @@ v0.4.x and will be removed in v0.5.0.
 - Universal eviction webhook and admission hold
 - AWS cloud sentinel, with GCP and Azure probes covered by unit tests
 - Readiness gates, deletion-cost steering and bounded hold relaxation
+- Kind coverage for normal handoff and readiness-deadline escape
+- Finalizer-backed restoration when a PodHandoff is deleted during a surge
+- Immutable target references, preventing active surge state from being orphaned by retargeting
+- CI validation that the rendered sentinel command matches the sentinel binary
 
 ## Open design items
 

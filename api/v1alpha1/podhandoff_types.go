@@ -59,6 +59,7 @@ type TargetReference struct {
 }
 
 type PodHandoffSpec struct {
+	// +kubebuilder:validation:XValidation:rule="self == oldSelf",message="targetRef is immutable"
 	// +required
 	TargetRef TargetReference `json:"targetRef"`
 

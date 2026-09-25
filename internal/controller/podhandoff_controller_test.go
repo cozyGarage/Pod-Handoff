@@ -430,6 +430,45 @@ var _ = Describe("PodHandoff controller", func() {
 		Eventually(func() appsv1alpha1.Phase { return getCR(f).Status.Phase }).Should(Equal(appsv1alpha1.PhaseIdle))
 	})
 
+	It("restores temporary workload state when deleted during a surge", func() {
+		f := newFixture(nil)
+		cordonNode(f.node)
+		expectSurged(f)
+
+		By("deleting the PodHandoff while its target is still surged")
+		Expect(k8sClient.Delete(ctx, f.cr)).To(Succeed())
+
+		By("restoring replicas and deletion cost before allowing deletion to finish")
+		Eventually(func() int32 { return *getDeployment(f).Spec.Replicas }).Should(Equal(int32(1)))
+		Eventually(func() map[string]string { return getDeployment(f).Annotations }).ShouldNot(HaveKey(AnnotationBaseReplicas))
+		Eventually(func() string { return getPodDeletionCost(f, f.pod.Name) }).Should(BeEmpty())
+		Eventually(func() bool {
+			pod := &corev1.Pod{}
+			if err := k8sClient.Get(ctx, client.ObjectKeyFromObject(f.pod), pod); err != nil {
+				return false
+			}
+			_, found := pod.Annotations[AnnotationPreviousDeletionCost]
+			return found
+		}).Should(BeFalse())
+		Eventually(func() bool {
+			err := k8sClient.Get(ctx, client.ObjectKeyFromObject(f.cr), &appsv1alpha1.PodHandoff{})
+			return apierrors.IsNotFound(err)
+		}).Should(BeTrue())
+	})
+
+	It("rejects retargeting so active workload state cannot be orphaned", func() {
+		f := newFixture(nil)
+		Eventually(func() bool {
+			return controllerHasFinalizer(getCR(f))
+		}).Should(BeTrue())
+
+		other := makeDeployment(f.ns, "other", 1)
+		Expect(k8sClient.Create(ctx, other)).To(Succeed())
+		cr := getCR(f)
+		cr.Spec.TargetRef.Name = other.Name
+		Expect(k8sClient.Update(ctx, cr)).NotTo(Succeed())
+	})
+
 	It("un-surges cleanly when the doom signal is retracted (uncordon)", func() {
 		f := newFixture(nil)
 		cordonNode(f.node)
@@ -605,6 +644,15 @@ func getPodDeletionCost(f *fixture, podName string) string {
 		return ""
 	}
 	return pod.Annotations[PodDeletionCostAnnotation]
+}
+
+func controllerHasFinalizer(cr *appsv1alpha1.PodHandoff) bool {
+	for _, finalizer := range cr.Finalizers {
+		if finalizer == PodHandoffFinalizer {
+			return true
+		}
+	}
+	return false
 }
 
 func findCond(cr *appsv1alpha1.PodHandoff, condType string) *metav1.Condition {

@@ -176,6 +176,10 @@ before enabling protection. See [GitOps coexistence](docs/gitops.md).
 | `readinessDeadlineSeconds` | 600 | How long to hold an eviction with no progress before giving up and letting it through |
 | `holdMode` | `always` | Which disruptions are worth making wait. See below |
 
+`targetRef` is immutable. To protect a different Deployment, delete and
+recreate the `PodHandoff`; its cleanup finalizer restores any active surge and
+owned pod deletion-cost annotations before deletion completes.
+
 `holdMode` decides whether an eviction is held at all. The surge is not
 affected by it: a stand-in comes up on every doom signal in all three modes,
 because bringing one up early costs nothing and losing the race costs
