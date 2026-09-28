@@ -1,17 +1,21 @@
 # PodHandoff project direction
 
-PodHandoff is not a general high-availability product and it does not promise
-survival of an unannounced node failure. Its distinct problem is narrower and
-operationally useful: preserve a ready endpoint for a **planned Kubernetes
-disruption** without paying for a permanent second application replica.
+PodHandoff coordinates a Deployment's handoff during an announced Kubernetes
+node disruption. Its purpose is to keep a ready replacement available before
+the old Pod is evicted, while avoiding the cost of a permanently running
+second application replica.
+
+It is not a general high-availability product. It cannot protect against an
+unannounced node failure, an application failure, unsafe duplicate work, or
+requests already in flight to the departing Pod.
 
 ## Product thesis
 
-For a stateless Deployment that can safely overlap old and replacement Pods,
-the reliability question during a drain is not “how quickly can Kubernetes
-reschedule?” It is “can the old endpoint remain available until the replacement
-is demonstrably ready?” PodHandoff coordinates that handoff, then releases its
-temporary capacity immediately after the disruption.
+For a Deployment that can safely overlap old and replacement Pods, the question
+during a drain is whether the old Pod can remain until its replacement is
+demonstrably ready. PodHandoff observes the disruption, adds temporary
+capacity, gates eviction on readiness when time permits, and returns the
+Deployment to its baseline after the handoff.
 
 This makes the cost model explicit:
 
@@ -40,34 +44,30 @@ This makes the cost model explicit:
    payment executors, schedulers, queue consumers, or any single-writer
    workload without proof that temporary overlap is safe.
 
-## Pilot narrative
+## Current maturity
 
-The first public demonstration should use a synthetic one-replica HTTP
-Deployment behind a Service with a meaningful readiness endpoint. Show the
-baseline, a normal worker drain, a replacement becoming ready on a second
-worker, the held eviction being admitted, and scale-back to one replica.
+The project is an early prerelease, before its first stage pilot. The core
+controller, admission webhook, optional cloud sentinel, and Kind scenario are
+implemented. The Kind suite contains normal handoff, deadline escape,
+rollback, controller fail-open, and external HTTP probe scenarios; the newest
+scenarios still need a run and review. The GitOps contract is documented and
+statically checked, but has not been proven with a live Argo CD sync. No
+PodHandoff stage or production availability results exist.
 
-The equally important second demonstration is the failure path: make the
-replacement unschedulable and show the readiness deadline relaxing the hold so
-the drain cannot wedge indefinitely. Include the GitOps ownership fixture and
-the controller fail-open posture. This is a stronger and more credible story
-than claiming universal zero downtime.
+## Pilot acceptance
 
-The TestLab sequence lives outside this public repository because it contains
-personal-lab routing. The portable acceptance criteria are: a disposable
-multi-worker cluster, a synthetic stateless canary, an external probe, normal
-handoff, deadline escape, rollback, cleanup, and captured evidence.
+Use a synthetic one-replica HTTP Deployment behind a Service with a meaningful
+readiness endpoint. Capture baseline traffic, a normal worker drain, the
+replacement becoming ready on another worker, eviction release, and scale-back
+to one replica. Also make the replacement unschedulable and show the hold
+relaxing at its deadline, then verify rollback and controller fail-open.
 
-## Near-term roadmap
-
-1. Make the Kind e2e suite reproduce the normal handoff, deadline escape,
-   rollback, and controller-replica-loss scenarios.
-2. Publish a versioned Helm chart and image only after the license and SBOM
-   gates, tests, and release notes are complete.
-3. Add a portable GitOps fixture that proves narrowly scoped Argo CD coexistence.
-4. Run the full synthetic TestLab drill before considering any stage pilot.
-5. Keep cloud sentinels optional and experimental until each provider is
-   validated against its real interruption mechanism.
+Before a stage pilot, run the Kind suite, prove the scoped Argo CD ownership
+rule during an active surge, and complete the disposable TestLab drill with an
+external probe, cleanup, and captured evidence. The TestLab sequence remains
+outside this repository because it contains personal-lab routing. Keep the
+first stage pilot limited to a synthetic or explicitly approved stateless
+workload; do not infer production readiness from unit tests or a Kind demo.
 
 ## Upstream provenance
 

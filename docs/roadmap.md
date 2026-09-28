@@ -1,48 +1,49 @@
 # Roadmap
 
-## v0.4.1 - holdMode
+PodHandoff is an early prerelease preparing for its first stage pilot. The
+current goal is to establish repeatable evidence for a narrow use case: a
+stateless Deployment that can safely run two instances briefly during an
+announced node disruption. A chart or passing unit suite alone is not pilot
+readiness.
 
-`hostageMode` is renamed to `holdMode`, the old field still accepted and
-reported once as deprecated. `status.mode` carries the resolved value and
-feeds the `MODE` print column. Upgrade notes moved out of the readme into
-UPGRADING.md.
+## Implemented
 
-## v0.4.0 - admission-time eviction hold
+- Readiness-gated temporary surge for Deployments
+- Eviction webhook that holds matching evictions, with bounded relaxation and
+  fail-open behavior
+- Cordon, taint, eviction, and optional cloud-sentinel signals
+- Cleanup that restores PodHandoff-owned Deployment and Pod state
+- Kind scenarios for normal handoff and deadline escape
+- Additional Kind scenarios for rollback, controller fail-open, and external
+  HTTP probing; these additions still need to be run and reviewed
+- Argo CD field-ownership guidance and a static contract check; no live Argo CD
+  coexistence result yet
 
-The validating webhook is now the enforcement point. It returns the same HTTP
-429 as a PodDisruptionBudget until a healthy stand-in is ready, then admits the
-drainer's retry. PodHandoff owns no budgets.
+The AWS sentinel has been validated against real spot interruptions. GCP and
+Azure probes have unit coverage only and remain experimental. The Helm chart
+is marked prerelease. There are no PodHandoff stage or production availability
+results.
 
-This resolves budget-pinned nodes structurally. Karpenter was live-observed
-retrying the webhook 21 times over 43 seconds and completing when admission
-opened, with no `DisruptionBlocked` event. `kubectl drain` followed the same
-retry path. A startup migration sweep removes 0.3.x budgets.
+## Gates before a stage pilot
 
-The failure posture is intentionally fail-open: operator unavailability creates
-a protection gap, not a stuck cluster. PDB migration RBAC remains through
-v0.4.x and will be removed in v0.5.0.
+1. Run the unit/envtest, lint, build, and Kind suites from a clean checkout.
+   Review and fix failures, including the newer rollback, fail-open, and probe
+   scenarios.
+2. Prove Argo CD's scoped `ignoreDifferences` and
+   `RespectIgnoreDifferences=true` behavior during an active surge, including
+   recovery of the Deployment's baseline replicas and convergence of an
+   unrelated change. The static `make gitops-check` is not this proof.
+3. Complete the disposable TestLab drill with a synthetic canary, external
+   probe, normal handoff, deadline escape, rollback, cleanup, and captured
+   evidence. TestLab routing and credentials stay outside this repository.
+4. Choose a stage workload only after confirming that temporary overlap is
+   safe. State the limits and record probe results; do not claim zero downtime.
+5. Complete license, SBOM, test, and release-note gates before promoting the
+   prerelease chart or image.
 
-## Shipped foundations
+## Later work
 
-- Core surge state machine with cordon and taint adapters
-- Universal eviction webhook and admission hold
-- AWS cloud sentinel, with GCP and Azure probes covered by unit tests
-- Readiness gates, deletion-cost steering and bounded hold relaxation
-- Kind coverage for normal handoff and readiness-deadline escape
-- Finalizer-backed restoration when a PodHandoff is deleted during a surge
-- Immutable target references, preventing active surge state from being orphaned by retargeting
-- CI validation that the rendered sentinel command matches the sentinel binary
-
-## Open design items
-
-- **Azure event approval.** Scheduled Events can be approved after traffic
-  readiness instead of merely observed.
-- **GCP and Azure live validation.** Both sentinels remain experimental until
-  exercised against their real metadata services.
-- **GitOps coexistence.** Document Argo CD and Flux `ignoreDifferences`
-  recipes, or move surge state to a separate standby Deployment.
-- **EvictionRequest migration.** KEP-4563 is the future interception point.
-  When drainers adopt it, the same state machine can respond before acking
-  without changing the product boundary.
-- **kubectl plugin.** Add `kubectl podhandoff status` for incident-time
-  visibility.
+- Validate GCP and Azure sentinels against their real interruption mechanisms.
+- Consider Azure Scheduled Event approval after traffic readiness.
+- Revisit interception if drainers adopt the Kubernetes EvictionRequest API.
+- Consider a `kubectl podhandoff status` command if incident use shows a need.

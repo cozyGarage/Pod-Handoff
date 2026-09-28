@@ -104,24 +104,28 @@ func (a *Adapter) Handle(ctx context.Context, req admission.Request) admission.R
 		return allowed
 	}
 
-	expires := time.Now().Add(a.lifetime())
+	now := time.Now()
+	expires := now.Add(a.lifetime())
 	a.registry.Set(signal.NodeDoom{
 		Node:      pod.Spec.NodeName,
 		Class:     signal.VoluntaryUnbounded,
 		ExpiresAt: &expires,
 		Source:    SourcePrefix + req.UserInfo.Username,
 	})
-	patched := pod.DeepCopy()
-	if patched.Annotations == nil {
-		patched.Annotations = map[string]string{}
+	annotationExpiry := now.Add(a.lifetime() / 2)
+	if current, active := signal.EvictionDoom(&pod, now); !active || current.ExpiresAt == nil || current.ExpiresAt.Before(annotationExpiry) {
+		patched := pod.DeepCopy()
+		if patched.Annotations == nil {
+			patched.Annotations = map[string]string{}
+		}
+		patched.Annotations[signal.EvictionUntilAnnotation] = expires.UTC().Format(time.RFC3339Nano)
+		if err := a.reader.Patch(ctx, patched, client.MergeFrom(&pod)); err != nil {
+			logf.FromContext(ctx).Error(err, "failed to publish eviction signal; allowing eviction")
+			return allowed
+		}
+		logf.FromContext(ctx).V(1).Info("eviction attempt observed",
+			"pod", req.Namespace+"/"+req.Name, "node", pod.Spec.NodeName, "evictor", req.UserInfo.Username)
 	}
-	patched.Annotations[signal.EvictionUntilAnnotation] = expires.UTC().Format(time.RFC3339Nano)
-	if err := a.reader.Patch(ctx, patched, client.MergeFrom(&pod)); err != nil {
-		logf.FromContext(ctx).Error(err, "failed to publish eviction signal; allowing eviction")
-		return allowed
-	}
-	logf.FromContext(ctx).V(1).Info("eviction attempt observed",
-		"pod", req.Namespace+"/"+req.Name, "node", pod.Spec.NodeName, "evictor", req.UserInfo.Username)
 
 	for _, p := range protectors {
 		if p.cr.HoldModeOrDefault() == appsv1alpha1.HoldOff ||

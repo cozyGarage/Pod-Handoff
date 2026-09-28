@@ -50,6 +50,7 @@ jobs:
       - name: Test (envtest)
         run: |
           go mod tidy
+          git diff --exit-code -- go.mod go.sum || (echo "::error::Go module files are not tidy; run 'go mod tidy' and commit the result" && exit 1)
           make test
 
   helm:

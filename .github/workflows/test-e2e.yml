@@ -27,12 +27,12 @@ jobs:
         env:
           KIND_VERSION: v0.33.0
         run: |
-          KIND_ARCH=$(go env GOARCH)
-          curl -fL -o ./kind-linux-${KIND_ARCH} https://kind.sigs.k8s.io/dl/${KIND_VERSION}/kind-linux-${KIND_ARCH}
-          curl -fL -o ./kind.sha256sum https://kind.sigs.k8s.io/dl/${KIND_VERSION}/kind-linux-${KIND_ARCH}.sha256sum
+          KIND_ARCH="$(go env GOARCH)"
+          curl -fL -o "./kind-linux-${KIND_ARCH}" "https://kind.sigs.k8s.io/dl/${KIND_VERSION}/kind-linux-${KIND_ARCH}"
+          curl -fL -o ./kind.sha256sum "https://kind.sigs.k8s.io/dl/${KIND_VERSION}/kind-linux-${KIND_ARCH}.sha256sum"
           sha256sum -c ./kind.sha256sum
-          chmod +x ./kind-linux-${KIND_ARCH}
-          sudo mv ./kind-linux-${KIND_ARCH} /usr/local/bin/kind
+          chmod +x "./kind-linux-${KIND_ARCH}"
+          sudo mv "./kind-linux-${KIND_ARCH}" /usr/local/bin/kind
 
       - name: Verify kind installation
         run: kind version
@@ -40,4 +40,5 @@ jobs:
       - name: Running Test e2e
         run: |
           go mod tidy
+          git diff --exit-code -- go.mod go.sum || (echo "::error::Go module files are not tidy; run 'go mod tidy' and commit the result" && exit 1)
           make test-e2e

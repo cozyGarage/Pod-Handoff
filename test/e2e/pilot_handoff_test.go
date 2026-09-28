@@ -22,9 +22,11 @@ package e2e
 import (
 	"bytes"
 	"fmt"
+	"net/http"
 	"os"
 	"os/exec"
 	"strings"
+	"sync"
 	"time"
 
 	. "github.com/onsi/ginkgo/v2"
@@ -114,6 +116,19 @@ spec:
             capabilities:
               drop: ["ALL"]
 ---
+apiVersion: v1
+kind: Service
+metadata:
+  name: canary
+  namespace: podhandoff-e2e-pilot
+spec:
+  selector:
+    app: podhandoff-e2e-canary
+  ports:
+    - name: http
+      port: 80
+      targetPort: http
+---
 apiVersion: apps.podhandoff.io/v1alpha1
 kind: PodHandoff
 metadata:
@@ -150,6 +165,11 @@ spec:
 	})
 
 	It("keeps the old Pod until the replacement is Ready, then evicts and scales back", func() {
+		stopPortForward, err := startCanaryPortForward()
+		Expect(err).NotTo(HaveOccurred())
+		DeferCleanup(stopPortForward)
+		Eventually(probeCanary).Should(Succeed())
+
 		oldPod, err := kubectl("get", "pods", "-n", pilotNamespace,
 			"-l", "app=podhandoff-e2e-canary", "-o", "jsonpath={.items[0].metadata.name}")
 		Expect(err).NotTo(HaveOccurred())
@@ -182,6 +202,8 @@ spec:
 		}).Should(Succeed())
 
 		By("starting a real drain and proving eviction remains held before readiness")
+		stopProbe := monitorCanary()
+		DeferCleanup(func() { stopProbe() })
 		drainDone := make(chan error, 1)
 		go func() {
 			_, drainErr := kubectl("drain", oldNode, "--ignore-daemonsets", "--delete-emptydir-data",
@@ -201,6 +223,10 @@ spec:
 			g.Expect(strings.TrimSpace(ready)).To(Equal("True"))
 		}, 2*time.Minute).Should(Succeed())
 		Eventually(drainDone, 2*time.Minute).Should(Receive(BeNil()))
+		probe := stopProbe()
+		_, _ = fmt.Fprintf(GinkgoWriter, "External canary probe during drain: %d requests, %d failures\n",
+			probe.requests, probe.failures)
+		Expect(probe.requests).To(BeNumerically(">", 0))
 
 		By("proving the old Pod left and temporary state was scaled back")
 		Eventually(func(g Gomega) {
@@ -214,6 +240,72 @@ spec:
 				"-o", "jsonpath={.metadata.annotations.podhandoff\\.io/base-replicas}")
 			g.Expect(getErr).NotTo(HaveOccurred())
 			g.Expect(strings.TrimSpace(base)).To(BeEmpty())
+		}).Should(Succeed())
+	})
+
+	It("restores the workload when protection is removed during a surge", func() {
+		oldPod, err := kubectl("get", "pods", "-n", pilotNamespace,
+			"-l", "app=podhandoff-e2e-canary", "-o", "jsonpath={.items[0].metadata.name}")
+		Expect(err).NotTo(HaveOccurred())
+		oldPod = strings.TrimSpace(oldPod)
+		oldNode, err := kubectl("get", "pod", oldPod, "-n", pilotNamespace, "-o", "jsonpath={.spec.nodeName}")
+		Expect(err).NotTo(HaveOccurred())
+		oldNode = strings.TrimSpace(oldNode)
+
+		By("starting a surge, then deleting the PodHandoff before eviction")
+		_, err = kubectl("cordon", oldNode)
+		Expect(err).NotTo(HaveOccurred())
+		DeferCleanup(func() { _, _ = kubectl("uncordon", oldNode) })
+		Eventually(func(g Gomega) {
+			replicas, getErr := kubectl("get", "deployment", "canary", "-n", pilotNamespace,
+				"-o", "jsonpath={.spec.replicas}")
+			g.Expect(getErr).NotTo(HaveOccurred())
+			g.Expect(strings.TrimSpace(replicas)).To(Equal("2"))
+			phase, getErr := kubectl("get", "podhandoff", "canary", "-n", pilotNamespace,
+				"-o", "jsonpath={.status.phase}")
+			g.Expect(getErr).NotTo(HaveOccurred())
+			g.Expect(strings.TrimSpace(phase)).To(Equal("Surging"))
+		}).Should(Succeed())
+		_, err = kubectl("delete", "podhandoff", "canary", "-n", pilotNamespace)
+		Expect(err).NotTo(HaveOccurred())
+
+		By("waiting for finalizer cleanup to restore the original replica count")
+		Eventually(func(g Gomega) {
+			replicas, getErr := kubectl("get", "deployment", "canary", "-n", pilotNamespace,
+				"-o", "jsonpath={.spec.replicas}")
+			g.Expect(getErr).NotTo(HaveOccurred())
+			g.Expect(strings.TrimSpace(replicas)).To(Equal("1"))
+			base, getErr := kubectl("get", "deployment", "canary", "-n", pilotNamespace,
+				"-o", "jsonpath={.metadata.annotations.podhandoff\\.io/base-replicas}")
+			g.Expect(getErr).NotTo(HaveOccurred())
+			g.Expect(strings.TrimSpace(base)).To(BeEmpty())
+			_, getErr = kubectl("get", "podhandoff", "canary", "-n", pilotNamespace)
+			g.Expect(getErr).To(HaveOccurred())
+		}).Should(Succeed())
+		_, err = kubectl("uncordon", oldNode)
+		Expect(err).NotTo(HaveOccurred())
+		manifest := `apiVersion: apps.podhandoff.io/v1alpha1
+kind: PodHandoff
+metadata:
+  name: canary
+  namespace: podhandoff-e2e-pilot
+spec:
+  targetRef:
+    kind: Deployment
+    name: canary
+  holdMode: always
+  readinessDeadlineSeconds: 90
+  minSurgeTimeSeconds: 5
+`
+		cmd := exec.Command("kubectl", "apply", "-f", "-")
+		cmd.Stdin = bytes.NewBufferString(manifest)
+		_, err = utils.Run(cmd)
+		Expect(err).NotTo(HaveOccurred())
+		Eventually(func(g Gomega) {
+			phase, getErr := kubectl("get", "podhandoff", "canary", "-n", pilotNamespace,
+				"-o", "jsonpath={.status.phase}")
+			g.Expect(getErr).NotTo(HaveOccurred())
+			g.Expect(strings.TrimSpace(phase)).To(Equal("Idle"))
 		}).Should(Succeed())
 	})
 
@@ -274,6 +366,39 @@ spec:
 			return getErr
 		}).Should(HaveOccurred())
 	})
+
+	It("fails open when every controller replica is unavailable", func() {
+		oldPod, err := kubectl("get", "pods", "-n", pilotNamespace,
+			"-l", "app=podhandoff-e2e-canary", "-o", "jsonpath={.items[0].metadata.name}")
+		Expect(err).NotTo(HaveOccurred())
+		oldPod = strings.TrimSpace(oldPod)
+		oldNode, err := kubectl("get", "pod", oldPod, "-n", pilotNamespace, "-o", "jsonpath={.spec.nodeName}")
+		Expect(err).NotTo(HaveOccurred())
+		oldNode = strings.TrimSpace(oldNode)
+
+		By("scaling every webhook replica down")
+		_, err = kubectl("scale", "deployment/podhandoff-controller-manager", "-n", namespace, "--replicas=0")
+		Expect(err).NotTo(HaveOccurred())
+		DeferCleanup(func() {
+			_, _ = kubectl("scale", "deployment/podhandoff-controller-manager", "-n", namespace, "--replicas=1")
+		})
+		Eventually(func(g Gomega) {
+			endpoints, getErr := kubectl("get", "endpoints", "webhook-service", "-n", namespace,
+				"-o", "jsonpath={.subsets[0].addresses[*].ip}")
+			g.Expect(getErr).NotTo(HaveOccurred())
+			g.Expect(strings.TrimSpace(endpoints)).To(BeEmpty())
+		}).Should(Succeed())
+
+		By("draining a protected pod while admission is unreachable")
+		_, err = kubectl("cordon", oldNode)
+		Expect(err).NotTo(HaveOccurred())
+		DeferCleanup(func() { _, _ = kubectl("uncordon", oldNode) })
+		_, err = kubectl("drain", oldNode, "--ignore-daemonsets", "--delete-emptydir-data",
+			"--pod-selector=app=podhandoff-e2e-canary", "--timeout=2m")
+		Expect(err).NotTo(HaveOccurred())
+		_, err = kubectl("get", "pod", oldPod, "-n", pilotNamespace)
+		Expect(err).To(HaveOccurred(), "the fail-open webhook must allow the drain to finish")
+	})
 })
 
 func kubectl(args ...string) (string, error) {
@@ -291,4 +416,69 @@ func kubectl(args ...string) (string, error) {
 		return out, fmt.Errorf("kubectl %s: %s: %w", strings.Join(args, " "), out, err)
 	}
 	return out, nil
+}
+
+type canaryProbeStats struct {
+	requests int
+	failures int
+}
+
+func startCanaryPortForward() (func(), error) {
+	dir, err := utils.GetProjectDir()
+	if err != nil {
+		return nil, err
+	}
+	cmd := exec.Command("kubectl", "port-forward", "--address=127.0.0.1", "service/canary", "18080:80", "-n", pilotNamespace)
+	cmd.Dir = dir
+	cmd.Stdout, cmd.Stderr = GinkgoWriter, GinkgoWriter
+	if err := cmd.Start(); err != nil {
+		return nil, err
+	}
+	return func() {
+		_ = cmd.Process.Kill()
+		_ = cmd.Wait()
+	}, nil
+}
+
+func probeCanary() error {
+	client := http.Client{Timeout: time.Second}
+	resp, err := client.Get("http://127.0.0.1:18080/readyz")
+	if err != nil {
+		return err
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode != http.StatusOK {
+		return fmt.Errorf("canary returned HTTP %d", resp.StatusCode)
+	}
+	return nil
+}
+
+func monitorCanary() func() canaryProbeStats {
+	stop, done := make(chan struct{}), make(chan canaryProbeStats, 1)
+	go func() {
+		var stats canaryProbeStats
+		ticker := time.NewTicker(250 * time.Millisecond)
+		defer ticker.Stop()
+		for {
+			select {
+			case <-stop:
+				done <- stats
+				return
+			case <-ticker.C:
+				stats.requests++
+				if err := probeCanary(); err != nil {
+					stats.failures++
+				}
+			}
+		}
+	}()
+	var once sync.Once
+	var stats canaryProbeStats
+	return func() canaryProbeStats {
+		once.Do(func() {
+			close(stop)
+			stats = <-done
+		})
+		return stats
+	}
 }

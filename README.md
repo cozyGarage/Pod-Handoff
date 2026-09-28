@@ -1,26 +1,35 @@
 <div align="center">
   <img src="docs/assets/podhandoff-mark.svg" alt="PodHandoff" width="430">
-  <p><b>Readiness-gated Pod handoff for announced Kubernetes disruptions.</b><br>
-  Keep one application replica normally, add temporary capacity during a drain,<br>
-  and release eviction only after the replacement is ready.</p>
-  <img src="docs/assets/terminal-demo.svg" width="720" alt="Terminal simulation: the pod in production receives a spot interruption notice, PodHandoff holds the eviction and starts a stand-in pod that goes from Pending to Running; only then does the original terminate. The probe records 764 requests, 1 failed.">
+  <p><b>Temporary capacity for safer Kubernetes node handoffs.</b><br>
+  Keep one application replica normally. During an announced disruption,<br>
+  start a stand-in and hold eviction until it passes readiness.</p>
+  <img src="docs/assets/terminal-demo.svg" width="720" alt="A simulated node disruption: PodHandoff starts a stand-in pod and holds eviction until it is ready.">
 </div>
 
-Best effort, spelled out: no downtime from disruptions that announce
-themselves, bounded downtime when a hard deadline cannot be won, and no
-protection against unannounced hardware death. That last one is what a second
-replica is for, and nothing changes it.
-
 PodHandoff protects a single-replica Deployment when a node announces that it
-is going away. It brings up a temporary stand-in, waits until that Pod is
-genuinely serving traffic, and only then lets the original leave. The extra Pod
-exists only while the disruption is in flight.
+is going away. It temporarily scales the Deployment, waits for a healthy
+replacement on a non-doomed node, then lets the drainer retry the eviction and
+restores the original replica count.
+
+The goal is to avoid keeping a second application replica running all the time
+when the workload can safely overlap two instances for a short handoff. This
+is disruption coordination, not general high availability: an unannounced
+node failure, application crash, or lost in-flight request is outside its
+protection.
+
+## Project status
+
+PodHandoff is an early prerelease and is still preparing for a stage pilot. The
+repository includes controller and webhook behavior, a Kind pilot scenario for
+normal handoff and deadline escape, and scenarios for rollback, controller
+fail-open, and an HTTP probe. Those newer Kind scenarios have not yet been
+run. Live Argo CD coexistence and the disposable TestLab drill are also still
+required; there are no PodHandoff stage or production availability results.
+See the [roadmap](docs/roadmap.md) for the validation gates and
+[project direction](docs/project-direction.md) for scope and safety boundaries.
 
 PodHandoff is derived from [Understudy](UPSTREAM.md). The imported baseline,
 local changes, and attribution are recorded explicitly there.
-
-The product boundary, safety principles, and pilot narrative are in
-[Project direction](docs/project-direction.md).
 
 ```yaml
 apiVersion: apps.podhandoff.io/v1alpha1
@@ -38,31 +47,30 @@ spec:
 
 ## Why not just run two replicas
 
-Two replicas is rent paid every hour of every day against an event that lasts
-minutes a month. It also halves your capacity headroom during every drain, and
-for workloads that are singletons by nature (leader-elected controllers,
-schedulers, queue consumers with sticky assignment) the second replica is idle
-spend that buys nothing.
+Two replicas are the better fit when you need capacity already available for
+unannounced failures or cannot wait for a replacement to start. PodHandoff
+offers a different tradeoff for workloads where a brief overlap is safe and
+the extra replica is costly to keep running between disruptions. It does not
+replace permanent redundancy.
 
-PodHandoff's bet is narrower: your workload can tolerate two pods for a few
-minutes. That is the same property a rolling update with `maxSurge: 1` already
-requires, so if you deploy without downtime today, you qualify. The second pod
-then exists only while a disruption is happening.
+PodHandoff is useful only when the workload can safely run two instances for a
+short time. A rolling update with `maxSurge: 1` is a useful clue, but it does
+not prove that duplicate work, leader election, or shared state is safe during
+a disruption. Validate the workload itself before enabling protection.
 
-## What it survives
+## Signals it handles
 
-| Kind of disruption | Examples | Time available |
+| Kind of disruption | Examples | PodHandoff behavior |
 |---|---|---|
-| Voluntary | node drain, Karpenter drift and consolidation and expiry, node pool upgrades, manual `kubectl drain` | unbounded, the eviction is held |
-| Involuntary | spot and preemptible reclaim, host maintenance | fixed deadline, seconds to minutes |
-| Deploys | rolling update of the workload itself | not our business, PodHandoff stands down |
+| Voluntary | node drain, Karpenter drift and consolidation and expiry, node pool upgrades, manual `kubectl drain` | Holds matching eviction while a replacement becomes ready, bounded by the readiness deadline |
+| Involuntary | spot and preemptible reclaim, host maintenance | Starts a replacement; holds only while the remaining deadline makes readiness plausible |
+| Workload rollout | Deployment rolling update | Stands down while the target Deployment is rolling out |
 
 ## Upstream results
 
 The upstream Understudy project reported the following measurements on EKS
-with Karpenter and arm64 spot nodes. They are provenance for the imported
-design, not PodHandoff release evidence. PodHandoff must reproduce the relevant
-drain tests in its own CI and stage pilot before making an availability claim.
+with Karpenter and arm64 spot nodes. They are historical upstream results, not
+PodHandoff evidence, and should not be used to predict pilot outcomes.
 
 | Event | Failed requests |
 |---|---|
@@ -72,10 +80,8 @@ drain tests in its own CI and stage pilot before making an availability claim.
 | Real AWS spot interruption | 1 of 764 |
 | Ordinary rolling update, no PodHandoff involved (control) | 2 of 38 |
 
-The last row is the important one. The handful of requests lost during a
-disruption are lost as the old pod exits, and an ordinary deploy of the same
-workload loses more. PodHandoff makes a node disruption cost about what a
-routine deploy costs.
+PodHandoff still needs its own repeatable measurements with an external probe
+before making availability claims.
 
 ## Requirements
 
@@ -103,6 +109,10 @@ A working install answers `TooManyRequests` and starts a surge. Silence
 means the API server never reached the webhook.
 
 ## Install
+
+The chart is an early prerelease. Use a disposable or staging cluster while
+working through the [pilot gates](docs/roadmap.md); this repository does not
+yet establish production readiness.
 
 ```sh
 helm install podhandoff oci://ghcr.io/cozyGarage/charts/podhandoff \
