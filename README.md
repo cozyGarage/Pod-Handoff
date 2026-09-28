@@ -27,7 +27,10 @@ run. A disposable TestLab comparison completed two controlled drain trials per
 mode: the canary had 59 failed samples in 298 baseline probes, versus 0 in 538
 probes with PodHandoff. This supports the narrow planned-drain use case, but
 does not establish production readiness or protection from unannounced
-failures. See the [pilot evidence](docs/evidence/pilot-2026-09-28/README.md),
+failures. Follow-up drills covered a two-replica setup, an unready replacement,
+and a controller outage. In the two-replica run Kubernetes alone also had no
+failed probes, so PodHandoff showed no binary availability gain there. See the
+[pilot evidence](docs/evidence/pilot-2026-09-28/README.md),
 [roadmap](docs/roadmap.md), and
 [project direction](docs/project-direction.md) for scope and remaining gates.
 

@@ -182,6 +182,7 @@ spec:
 		By("announcing the planned disruption and waiting for an unready stand-in")
 		_, err = kubectl("cordon", oldNode)
 		Expect(err).NotTo(HaveOccurred())
+		DeferCleanup(func() { _, _ = kubectl("uncordon", oldNode) })
 		Eventually(func(g Gomega) {
 			replicas, getErr := kubectl("get", "deployment", "canary", "-n", pilotNamespace,
 				"-o", "jsonpath={.spec.replicas}")
@@ -241,6 +242,111 @@ spec:
 			g.Expect(getErr).NotTo(HaveOccurred())
 			g.Expect(strings.TrimSpace(base)).To(BeEmpty())
 		}).Should(Succeed())
+	})
+
+	It("preserves a two-replica baseline through a worker drain", func() {
+		By("spreading the baseline across the two canary workers")
+		for _, node := range canaryNodes {
+			_, err := kubectl("uncordon", node)
+			Expect(err).NotTo(HaveOccurred())
+		}
+		_, err := kubectl("patch", "deployment", "canary", "-n", pilotNamespace, "--type=merge", "-p",
+			`{"spec":{"template":{"spec":{"topologySpreadConstraints":[{"maxSkew":1,"topologyKey":"kubernetes.io/hostname","whenUnsatisfiable":"DoNotSchedule","labelSelector":{"matchLabels":{"app":"podhandoff-e2e-canary"}}}]}}}}`)
+		Expect(err).NotTo(HaveOccurred())
+		_, err = kubectl("rollout", "status", "deployment/canary", "-n", pilotNamespace, "--timeout=2m")
+		Expect(err).NotTo(HaveOccurred())
+		_, err = kubectl("scale", "deployment/canary", "-n", pilotNamespace, "--replicas=2")
+		Expect(err).NotTo(HaveOccurred())
+		_, err = kubectl("rollout", "status", "deployment/canary", "-n", pilotNamespace, "--timeout=2m")
+		Expect(err).NotTo(HaveOccurred())
+
+		pods, err := kubectl("get", "pods", "-n", pilotNamespace, "-l", "app=podhandoff-e2e-canary", "-o",
+			"jsonpath={range .items[*]}{.metadata.name}={.spec.nodeName}{'\\n'}{end}")
+		Expect(err).NotTo(HaveOccurred())
+		podLines := utils.GetNonEmptyLines(pods)
+		Expect(podLines).To(HaveLen(2))
+		firstName, firstNode, found := strings.Cut(podLines[0], "=")
+		Expect(found).To(BeTrue())
+		secondName, secondNode, found := strings.Cut(podLines[1], "=")
+		Expect(found).To(BeTrue())
+		Expect(firstNode).NotTo(Equal(secondNode), "one baseline Pod must survive off the drained node")
+
+		stopPortForward, err := startCanaryPortForward()
+		Expect(err).NotTo(HaveOccurred())
+		DeferCleanup(stopPortForward)
+		Eventually(probeCanary).Should(Succeed())
+		stopProbe := monitorCanary()
+		DeferCleanup(func() { stopProbe() })
+
+		oldPod, oldNode := firstName, firstNode
+		_, err = kubectl("cordon", oldNode)
+		Expect(err).NotTo(HaveOccurred())
+		DeferCleanup(func() { _, _ = kubectl("uncordon", oldNode) })
+		basePods := map[string]bool{firstName: true, secondName: true}
+		var standInPod string
+		Eventually(func(g Gomega) {
+			replicas, getErr := kubectl("get", "deployment", "canary", "-n", pilotNamespace,
+				"-o", "jsonpath={.spec.replicas}")
+			g.Expect(getErr).NotTo(HaveOccurred())
+			g.Expect(strings.TrimSpace(replicas)).To(Equal("3"))
+			phase, getErr := kubectl("get", "podhandoff", "canary", "-n", pilotNamespace,
+				"-o", "jsonpath={.status.phase}")
+			g.Expect(getErr).NotTo(HaveOccurred())
+			g.Expect(strings.TrimSpace(phase)).To(Equal("Surging"))
+			currentPods, getErr := kubectl("get", "pods", "-n", pilotNamespace,
+				"-l", "app=podhandoff-e2e-canary", "-o", "jsonpath={range .items[*]}{.metadata.name}{'\\n'}{end}")
+			g.Expect(getErr).NotTo(HaveOccurred())
+			for _, pod := range utils.GetNonEmptyLines(currentPods) {
+				if !basePods[pod] {
+					standInPod = pod
+				}
+			}
+			g.Expect(standInPod).NotTo(BeEmpty())
+		}).Should(Succeed())
+
+		drainDone := make(chan error, 1)
+		go func() {
+			_, drainErr := kubectl("drain", oldNode, "--ignore-daemonsets", "--delete-emptydir-data",
+				"--pod-selector=app=podhandoff-e2e-canary", "--timeout=2m")
+			drainDone <- drainErr
+		}()
+		Consistently(func() error {
+			_, getErr := kubectl("get", "pod", oldPod, "-n", pilotNamespace)
+			return getErr
+		}, 5*time.Second, time.Second).Should(Succeed(), "the old Pod must remain until a second healthy Pod is ready")
+		Eventually(func(g Gomega) {
+			ready, getErr := kubectl("get", "pod", standInPod, "-n", pilotNamespace,
+				"-o", "jsonpath={.status.conditions[?(@.type=='Ready')].status}")
+			g.Expect(getErr).NotTo(HaveOccurred())
+			g.Expect(strings.TrimSpace(ready)).To(Equal("True"))
+		}, 2*time.Minute).Should(Succeed())
+		Eventually(drainDone, 2*time.Minute).Should(Receive(BeNil()))
+		probe := stopProbe()
+		Expect(probe.requests).To(BeNumerically(">", 0))
+		Expect(probe.failures).To(Equal(0))
+
+		Eventually(func(g Gomega) {
+			_, getErr := kubectl("get", "pod", oldPod, "-n", pilotNamespace)
+			g.Expect(getErr).To(HaveOccurred())
+			replicas, getErr := kubectl("get", "deployment", "canary", "-n", pilotNamespace,
+				"-o", "jsonpath={.spec.replicas}")
+			g.Expect(getErr).NotTo(HaveOccurred())
+			g.Expect(strings.TrimSpace(replicas)).To(Equal("2"))
+			available, getErr := kubectl("get", "deployment", "canary", "-n", pilotNamespace,
+				"-o", "jsonpath={.status.availableReplicas}")
+			g.Expect(getErr).NotTo(HaveOccurred())
+			g.Expect(strings.TrimSpace(available)).To(Equal("2"))
+		}).Should(Succeed())
+
+		_, err = kubectl("uncordon", oldNode)
+		Expect(err).NotTo(HaveOccurred())
+		_, err = kubectl("scale", "deployment", "canary", "-n", pilotNamespace, "--replicas=1")
+		Expect(err).NotTo(HaveOccurred())
+		_, err = kubectl("patch", "deployment", "canary", "-n", pilotNamespace, "--type=merge", "-p",
+			`{"spec":{"template":{"spec":{"topologySpreadConstraints":null}}}}`)
+		Expect(err).NotTo(HaveOccurred())
+		_, err = kubectl("rollout", "status", "deployment/canary", "-n", pilotNamespace, "--timeout=2m")
+		Expect(err).NotTo(HaveOccurred())
 	})
 
 	It("restores the workload when protection is removed during a surge", func() {
@@ -322,8 +428,12 @@ spec:
 		_, err = kubectl("patch", "podhandoff", "canary", "-n", pilotNamespace, "--type=merge", "-p",
 			`{"spec":{"readinessDeadlineSeconds":15}}`)
 		Expect(err).NotTo(HaveOccurred())
-		_, err = kubectl("cordon", oldNode)
-		Expect(err).NotTo(HaveOccurred())
+		for _, node := range canaryNodes {
+			node := node
+			_, err = kubectl("cordon", node)
+			Expect(err).NotTo(HaveOccurred())
+			DeferCleanup(func() { _, _ = kubectl("uncordon", node) })
+		}
 
 		Eventually(func(g Gomega) {
 			replicas, getErr := kubectl("get", "deployment", "canary", "-n", pilotNamespace,
@@ -365,6 +475,9 @@ spec:
 			_, getErr := kubectl("get", "pod", oldPod, "-n", pilotNamespace)
 			return getErr
 		}).Should(HaveOccurred())
+		_, err = kubectl("patch", "podhandoff", "canary", "-n", pilotNamespace, "--type=merge", "-p",
+			`{"spec":{"readinessDeadlineSeconds":90}}`)
+		Expect(err).NotTo(HaveOccurred())
 	})
 
 	It("fails open when every controller replica is unavailable", func() {

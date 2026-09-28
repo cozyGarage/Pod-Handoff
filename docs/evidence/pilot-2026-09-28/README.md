@@ -64,6 +64,76 @@ configuration and should not be attributed to a specific Git commit.
 The worker nodes were uncordoned after the experiment. The canary and
 PodHandoff resource were left running in the disposable lab.
 
+## Two-replica comparison
+
+To check whether PodHandoff adds observed availability when the workload
+already has redundancy, the same canary was run with two replicas spread
+across `work1` and `work2`. The `work1` drain was repeated once without a
+PodHandoff resource and once with it. Both runs returned HTTP 200 for every
+sample:
+
+| Mode | Requests | Failed | Failure rate | Longest success gap | Drain command |
+|---|---:|---:|---:|---:|---:|
+| Kubernetes only | 357 | 0 | 0% | 0.218 s | 2 s |
+| PodHandoff | 310 | 0 | 0% | 0.225 s | 23 s |
+
+Kubernetes alone kept the unaffected replica serving while it replaced the
+evicted Pod. PodHandoff waited for a third Ready Pod before eviction, keeping
+two Ready replicas through the handoff. This trial did not show a request
+availability improvement over the two-replica baseline; it did show that
+PodHandoff can preserve replica capacity during a planned drain, at the cost
+of a longer drain. The probe did not measure throughput, so it cannot show
+whether maintaining two Ready replicas improved capacity under load.
+
+The [probe samples](multi-replica/probe.csv) and
+[Pod watch](multi-replica/pods.watch) are preserved. The watch shows the
+stand-in reached `1/1 Running` before the old Pod entered `Terminating`. It
+also shows the Deployment briefly creating a second replacement while the old
+Pod was terminating; PodHandoff scaled from 3 replicas back to 2 and that new
+Pod was deleted before becoming Ready. This is one observed run, so repeat it
+before deciding whether to change the scale-back timing.
+
+The controller's Prometheus counters and process metrics were sampled just
+before and after the protected two-replica run. Over about 58 seconds,
+`process_cpu_seconds_total` rose from 3.81 to 3.91, resident memory stayed at
+about 61 MiB, heap allocation rose from 6.5 to 9.4 MB, reconcile count rose
+from 102 to 138, and reconcile errors stayed at 0. This is a pair of samples,
+not a CPU profile; it does not identify function-level hot paths or capture
+peak resource use. The manager does not expose pprof or a webhook-duration
+histogram today.
+
+## Unready replacement and deadline release
+
+For this run, the canary ran on `work1`, the manager remained on `work2`, and
+both canary-eligible workers were cordoned so no replacement could become
+Ready. With a 15-second readiness deadline, the webhook returned HTTP 429
+while the controller prepared a stand-in. The `HoldRelaxed` event was
+recorded at 22:37:50.254 UTC, about 15 seconds after the `SurgeStarted` event
+at 22:37:35.193 UTC. The drain then finished at 22:37:56 UTC without a Ready
+replacement.
+
+The probe recorded 139 failed samples and an 82.789-second gap between
+successful responses. Most of that gap was after the deadline: the test kept
+both workers unschedulable until we restored capacity, so it demonstrates the
+limit of the deadline behavior. PodHandoff bounds how long it holds eviction;
+it cannot keep serving after the only Pod is evicted when no replacement node
+is available. See the [probe](unready-timeout/probe.csv) and
+[PodHandoff events](unready-timeout/events.txt).
+
+## Controller unavailable
+
+We scaled the sole controller to zero, verified the webhook had no endpoints
+and `failurePolicy` was `Ignore`, then drained the node running the canary.
+The drain completed in 2 seconds. The replacement took about 15 seconds to
+become Ready; the probe recorded 29 failed samples out of 127 and a
+16.435-second success gap. This confirms the fail-open tradeoff: maintenance
+can proceed, but PodHandoff provides no protection while its webhook is
+unavailable. The [probe](controller-down/probe.csv) is preserved.
+
+This tests an unavailable webhook, not a webhook that accepts a connection
+and hangs until `timeoutSeconds` expires. That API-server timeout path still
+needs an integration test.
+
 ## What this supports
 
 Kubernetes reschedules a Pod after eviction, but for a one-replica Deployment
@@ -81,8 +151,11 @@ failure-domain placement instead.
 
 ## Limits and next evidence
 
-- Only two trials per mode were run, against one synthetic service and one
-  planned worker drain. This is a useful signal, not a reliability estimate.
+- The single-replica comparison has two trials per mode, against one
+  synthetic service and planned worker drains. This is a useful signal, not a
+  reliability estimate.
+- The two-replica comparison is one trial per mode. It does not test
+  throughput or whether preserving capacity changes user latency under load.
 - The probe ran from another VM in the same cluster network. It did not
   represent an end-user path or record request latency, throughput, or
   application-level correctness.
@@ -93,7 +166,7 @@ failure-domain placement instead.
   has already failed.
 - A production-oriented pilot should repeat the comparison more times, use
   an externally located probe, record latency and application errors, and
-  exercise timeout, rollback, cleanup, and controller-unavailable paths.
+  exercise the webhook timeout, rollback, and cleanup paths.
 
 The manifests and probe used for trial 1 are preserved here:
 [canary](canary.yaml), [PodHandoff](podhandoff.yaml), and [probe](probe.sh).

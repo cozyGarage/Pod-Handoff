@@ -1,0 +1,12 @@
+TIME                          REASON         MESSAGE
+2026-09-28T22:08:41.517075Z   SurgeStarted   node doom (cordon) for pod(s) of canary; surging 1 -> 2
+2026-09-28T22:08:57.675096Z   SurgeReady     stand-in for canary is traffic-ready; releasing the eviction
+2026-09-28T22:09:01.722563Z   ScaledBack     predicament over; scaled canary back to 1 replicas
+2026-09-28T22:27:00.892302Z   SurgeStarted   node doom (cordon) for pod(s) of canary; surging 2 -> 3
+2026-09-28T22:27:16.177989Z   SurgeReady     stand-in for canary is traffic-ready; releasing the eviction
+2026-09-28T22:27:21.271150Z   ScaledBack     predicament over; scaled canary back to 2 replicas
+2026-09-28T22:36:46.339075Z   SurgeStarted   node doom (cordon) for pod(s) of canary; surging 1 -> 2
+2026-09-28T22:36:46.633901Z   ScaledBack     predicament over; scaled canary back to 1 replicas
+2026-09-28T22:37:35.193848Z   SurgeStarted   node doom (cordon) for pod(s) of canary; surging 1 -> 2
+2026-09-28T22:37:50.254372Z   HoldRelaxed    eviction hold relaxed (ttl); eviction can proceed without a ready stand-in
+2026-09-28T22:37:55.720901Z   ScaledBack     predicament over; scaled canary back to 1 replicas

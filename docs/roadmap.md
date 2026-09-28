@@ -20,6 +20,9 @@ not stage or production readiness. See the [pilot report](evidence/pilot-2026-09
 - Disposable TestLab comparison: two plain-drain trials and two PodHandoff
   trials against a one-replica HTTP canary; raw samples and limits are in the
   [pilot report](evidence/pilot-2026-09-28/README.md)
+- Follow-up lab runs covered a two-replica target, an unready replacement
+  deadline, and fail-open with the controller unavailable. The actual
+  webhook request-timeout path and GitOps coexistence are not yet tested.
 - Argo CD field-ownership guidance and a static contract check; no live Argo CD
   coexistence result yet
 
@@ -39,9 +42,10 @@ results.
    unrelated change. The static `make gitops-check` is not this proof.
 3. Complete the disposable TestLab drill with a synthetic canary, external
    probe, normal handoff, deadline escape, rollback, cleanup, and captured
-   evidence. The normal-drain comparison is complete; deadline escape,
-   rollback, and cleanup still need to be captured. TestLab routing and
-   credentials stay outside this repository.
+   evidence. Normal drain, deadline escape, controller-unavailable behavior,
+   and a two-replica comparison are captured. A truly external probe, rollback,
+   and cleanup still need evidence. TestLab routing and credentials stay
+   outside this repository.
 4. Choose a stage workload only after confirming that temporary overlap is
    safe. State the limits and record probe results; do not claim zero downtime.
 5. Complete license, SBOM, test, and release-note gates before promoting the
@@ -53,3 +57,29 @@ results.
 - Consider Azure Scheduled Event approval after traffic readiness.
 - Revisit interception if drainers adopt the Kubernetes EvictionRequest API.
 - Consider a `kubectl podhandoff status` command if incident use shows a need.
+
+## Data-led early warning (research)
+
+Treat prediction as a staged safety feature, not a promise to prevent sudden
+crashes. Start with measurements and alerting:
+
+1. Record surge-to-Ready time, held-eviction duration, deadline relaxations,
+   webhook outcomes, Pod restarts/OOM kills, readiness failures, and node
+   conditions around each handoff. Correlate logs and events by workload and
+   disruption; keep high-cardinality identifiers out of metric labels.
+2. Use the observed readiness-time distribution to tune deadlines and
+   distinguish normal slow starts from a replacement that is stuck. Alert on
+   repeated readiness failures, CrashLoopBackOff/OOMKill, resource pressure,
+   and long or relaxed eviction holds before taking automatic action.
+3. First act only on authoritative warnings already emitted by Kubernetes or
+   the cloud provider (for example a disruption taint or termination notice).
+   A learned score or raw-log parser stays alert-only until false positives
+   and lead time are measured across workloads.
+4. Test node drain, unready/unschedulable replacements, webhook timeout,
+   controller loss, OOM/restart, and abrupt node loss. Only consider automatic
+   pre-warming when the warning arrives early enough, the workload is safe to
+   overlap, and the action can expire and fail open.
+
+An abrupt node or application failure can happen before any useful signal.
+Keep replicas and failure-domain placement as the protection for that case;
+PodHandoff can only act on disruption it observes in time.
