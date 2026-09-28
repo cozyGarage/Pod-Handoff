@@ -51,8 +51,10 @@ controller, admission webhook, optional cloud sentinel, and Kind scenario are
 implemented. The Kind suite contains normal handoff, deadline escape,
 rollback, controller fail-open, and external HTTP probe scenarios; the newest
 scenarios still need a run and review. The GitOps contract is documented and
-statically checked, but has not been proven with a live Argo CD sync. No
-PodHandoff stage or production availability results exist.
+statically checked, but has not been proven with a live Argo CD sync. A
+disposable-lab comparison has two baseline and two protected drain trials
+against a synthetic HTTP service; see the [pilot report](evidence/pilot-2026-09-28/README.md).
+No PodHandoff stage or production availability results exist.
 
 ## Pilot acceptance
 

@@ -1,0 +1,12 @@
+apiVersion: apps.podhandoff.io/v1alpha1
+kind: PodHandoff
+metadata:
+  name: canary
+  namespace: podhandoff-e2e-pilot
+spec:
+  targetRef:
+    kind: Deployment
+    name: canary
+  holdMode: always
+  readinessDeadlineSeconds: 90
+  minSurgeTimeSeconds: 5

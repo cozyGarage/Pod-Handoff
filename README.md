@@ -23,10 +23,13 @@ PodHandoff is an early prerelease and is still preparing for a stage pilot. The
 repository includes controller and webhook behavior, a Kind pilot scenario for
 normal handoff and deadline escape, and scenarios for rollback, controller
 fail-open, and an HTTP probe. Those newer Kind scenarios have not yet been
-run. Live Argo CD coexistence and the disposable TestLab drill are also still
-required; there are no PodHandoff stage or production availability results.
-See the [roadmap](docs/roadmap.md) for the validation gates and
-[project direction](docs/project-direction.md) for scope and safety boundaries.
+run. A disposable TestLab comparison completed two controlled drain trials per
+mode: the canary had 59 failed samples in 298 baseline probes, versus 0 in 538
+probes with PodHandoff. This supports the narrow planned-drain use case, but
+does not establish production readiness or protection from unannounced
+failures. See the [pilot evidence](docs/evidence/pilot-2026-09-28/README.md),
+[roadmap](docs/roadmap.md), and
+[project direction](docs/project-direction.md) for scope and remaining gates.
 
 PodHandoff is derived from [Understudy](UPSTREAM.md). The imported baseline,
 local changes, and attribution are recorded explicitly there.

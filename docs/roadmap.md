@@ -3,8 +3,9 @@
 PodHandoff is an early prerelease preparing for its first stage pilot. The
 current goal is to establish repeatable evidence for a narrow use case: a
 stateless Deployment that can safely run two instances briefly during an
-announced node disruption. A chart or passing unit suite alone is not pilot
-readiness.
+announced node disruption. A disposable TestLab comparison now shows the
+expected drain behavior across two trials per mode; it is an initial signal,
+not stage or production readiness. See the [pilot report](evidence/pilot-2026-09-28/README.md).
 
 ## Implemented
 
@@ -16,6 +17,9 @@ readiness.
 - Kind scenarios for normal handoff and deadline escape
 - Additional Kind scenarios for rollback, controller fail-open, and external
   HTTP probing; these additions still need to be run and reviewed
+- Disposable TestLab comparison: two plain-drain trials and two PodHandoff
+  trials against a one-replica HTTP canary; raw samples and limits are in the
+  [pilot report](evidence/pilot-2026-09-28/README.md)
 - Argo CD field-ownership guidance and a static contract check; no live Argo CD
   coexistence result yet
 
@@ -35,7 +39,9 @@ results.
    unrelated change. The static `make gitops-check` is not this proof.
 3. Complete the disposable TestLab drill with a synthetic canary, external
    probe, normal handoff, deadline escape, rollback, cleanup, and captured
-   evidence. TestLab routing and credentials stay outside this repository.
+   evidence. The normal-drain comparison is complete; deadline escape,
+   rollback, and cleanup still need to be captured. TestLab routing and
+   credentials stay outside this repository.
 4. Choose a stage workload only after confirming that temporary overlap is
    safe. State the limits and record probe results; do not claim zero downtime.
 5. Complete license, SBOM, test, and release-note gates before promoting the
