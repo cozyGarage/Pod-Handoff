@@ -310,6 +310,54 @@ var _ = Describe("PodHandoff controller", func() {
 		Expect(k8sClient.Get(ctx, client.ObjectKeyFromObject(unowned), &policyv1.PodDisruptionBudget{})).To(Succeed())
 	})
 
+	It("keeps a second protector's surge when the first protector is deleted", func() {
+		f := newFixture(nil)
+		cordonNode(f.node)
+		expectSurged(f)
+		second := &appsv1alpha1.PodHandoff{
+			ObjectMeta: metav1.ObjectMeta{Name: "lead-second", Namespace: f.ns},
+			Spec:       appsv1alpha1.PodHandoffSpec{TargetRef: appsv1alpha1.TargetReference{Name: f.dep.Name}},
+		}
+		Expect(k8sClient.Create(ctx, second)).To(Succeed())
+		Eventually(func() bool {
+			current := &appsv1alpha1.PodHandoff{}
+			if err := k8sClient.Get(ctx, client.ObjectKeyFromObject(second), current); err != nil {
+				return false
+			}
+			return controllerHasFinalizer(current)
+		}).Should(BeTrue())
+		Expect(k8sClient.Delete(ctx, f.cr)).To(Succeed())
+		Eventually(func() bool {
+			return apierrors.IsNotFound(k8sClient.Get(ctx, client.ObjectKeyFromObject(f.cr), &appsv1alpha1.PodHandoff{}))
+		}).Should(BeTrue())
+		Expect(*getDeployment(f).Spec.Replicas).To(Equal(int32(2)))
+		Expect(getDeployment(f).Annotations).To(HaveKey(AnnotationBaseReplicas))
+	})
+
+	It("releases an expired readiness hold while the target rollout is active", func() {
+		f := newFixture(func(cr *appsv1alpha1.PodHandoff) {
+			cr.Spec.ReadinessDeadlineSeconds = ptr.To(int32(1))
+		})
+		cordonNode(f.node)
+		expectSurged(f)
+		Eventually(func() error {
+			dep := getDeployment(f)
+			dep.Status.UpdatedReplicas = 0
+			dep.Status.Conditions = []appsv1.DeploymentCondition{{
+				Type: appsv1.DeploymentProgressing, Status: corev1.ConditionTrue, Reason: "ReplicaSetUpdated",
+			}}
+			return k8sClient.Status().Update(ctx, dep)
+		}).Should(Succeed())
+		Eventually(func() error {
+			cr := getCR(f)
+			cr.Status.Phase = appsv1alpha1.PhaseSurging
+			cr.Status.BlockedSince = &metav1.Time{Time: time.Now().Add(-2 * time.Second)}
+			return k8sClient.Status().Update(ctx, cr)
+		}).Should(Succeed())
+		Eventually(func() appsv1alpha1.Phase { return getCR(f).Status.Phase }).Should(Equal(appsv1alpha1.PhaseRelaxed))
+		Eventually(func() error { return evict(f.pod, false) }).Should(Succeed())
+	})
+
 	It("owns no objects and stays Idle on a healthy node", func() {
 		f := newFixture(nil)
 

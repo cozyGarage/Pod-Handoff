@@ -25,6 +25,7 @@ import (
 
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
+	apiequality "k8s.io/apimachinery/pkg/api/equality"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -179,7 +180,11 @@ func (r *PodHandoffReconciler) finalize(ctx context.Context, cr *appsv1alpha1.Po
 		return nil
 	}
 
-	if kind := cr.Spec.TargetRef.Kind; kind == "" || kind == "Deployment" {
+	remaining, err := r.hasOtherProtector(ctx, cr)
+	if err != nil {
+		return err
+	}
+	if !remaining && (cr.Spec.TargetRef.Kind == "" || cr.Spec.TargetRef.Kind == "Deployment") {
 		var dep appsv1.Deployment
 		err := r.Get(ctx, types.NamespacedName{Namespace: cr.Namespace, Name: cr.Spec.TargetRef.Name}, &dep)
 		switch {
@@ -214,6 +219,21 @@ func (r *PodHandoffReconciler) finalize(ctx context.Context, cr *appsv1alpha1.Po
 	return r.Patch(ctx, patched, client.MergeFrom(cr))
 }
 
+func (r *PodHandoffReconciler) hasOtherProtector(ctx context.Context, cr *appsv1alpha1.PodHandoff) (bool, error) {
+	var list appsv1alpha1.PodHandoffList
+	if err := r.List(ctx, &list, client.InNamespace(cr.Namespace)); err != nil {
+		return false, err
+	}
+	for i := range list.Items {
+		other := &list.Items[i]
+		if other.Name != cr.Name && other.DeletionTimestamp.IsZero() && other.Spec.TargetRef.Name == cr.Spec.TargetRef.Name &&
+			(other.Spec.TargetRef.Kind == "" || other.Spec.TargetRef.Kind == "Deployment") {
+			return true, nil
+		}
+	}
+	return false, nil
+}
+
 func (r *PodHandoffReconciler) assessPods(ctx context.Context, cr *appsv1alpha1.PodHandoff, dep *appsv1.Deployment) (podAssessment, error) {
 	var a podAssessment
 	selector, err := metav1.LabelSelectorAsSelector(dep.Spec.Selector)
@@ -239,7 +259,15 @@ func (r *PodHandoffReconciler) assessPods(ctx context.Context, cr *appsv1alpha1.
 		}
 		if doom, doomed := r.Registry.Lookup(pod.Spec.NodeName); doomed {
 			a.doomed = append(a.doomed, pod)
-			if a.worstDoom == nil || doom.Class == signal.Involuntary {
+			if a.worstDoom == nil || signal.MoreUrgent(doom, *a.worstDoom) {
+				d := doom
+				a.worstDoom = &d
+			}
+			continue
+		}
+		if doom, doomed := signal.EvictionDoom(pod, time.Now()); doomed {
+			a.doomed = append(a.doomed, pod)
+			if a.worstDoom == nil || signal.MoreUrgent(doom, *a.worstDoom) {
 				d := doom
 				a.worstDoom = &d
 			}
@@ -320,9 +348,13 @@ func (r *PodHandoffReconciler) reconcileDoomed(ctx context.Context, cr *appsv1al
 	}
 
 	if !surgeActive && rolloutInProgress(dep, base) {
-		status.Phase = appsv1alpha1.PhaseIdle
-		setCond(&status, cr, appsv1alpha1.ConditionSurgeReady, metav1.ConditionFalse,
-			"RolloutInProgress", "target is mid-rollout; standing down (the Deployment is already surging)")
+		if relaxReason != "" || ttlExpired {
+			r.markHoldRelaxed(cr, &status, relaxReason)
+		} else {
+			status.Phase = appsv1alpha1.PhaseIdle
+			setCond(&status, cr, appsv1alpha1.ConditionSurgeReady, metav1.ConditionFalse,
+				"RolloutInProgress", "target is mid-rollout; standing down (the Deployment is already surging)")
+		}
 		r.eventOnce(cr, &status, corev1.EventTypeNormal, "RolloutStandDown", "Skip",
 			fmt.Sprintf("doom signal for %s ignored: rollout in progress", dep.Name))
 		return ctrl.Result{RequeueAfter: activeRequeue}, r.patchStatus(ctx, cr, status)
@@ -348,7 +380,6 @@ func (r *PodHandoffReconciler) reconcileDoomed(ctx context.Context, cr *appsv1al
 		return ctrl.Result{}, err
 	}
 
-	previousPhase := status.Phase
 	switch {
 	case surgeReady:
 		status.Phase = appsv1alpha1.PhaseReleasing
@@ -357,24 +388,29 @@ func (r *PodHandoffReconciler) reconcileDoomed(ctx context.Context, cr *appsv1al
 		r.eventOnce(cr, &status, corev1.EventTypeNormal, "SurgeReady", "Release",
 			fmt.Sprintf("stand-in for %s is traffic-ready; releasing the eviction", dep.Name))
 	case relaxReason != "" || ttlExpired:
-		status.Phase = appsv1alpha1.PhaseRelaxed
-		setCond(&status, cr, appsv1alpha1.ConditionSurgeReady, metav1.ConditionFalse,
-			"Relaxed", "eviction released without a ready stand-in Pod ("+relaxReason+")")
-		if status.LastReleaseTime == nil || status.LastSurgeTime != nil && status.LastReleaseTime.Before(status.LastSurgeTime) {
-			now := metav1.Now()
-			status.LastReleaseTime = &now
-		}
-		if previousPhase != appsv1alpha1.PhaseRelaxed {
-			metrics.RelaxedTotal.WithLabelValues(relaxReason).Inc()
-		}
-		r.eventOnce(cr, &status, corev1.EventTypeWarning, "HoldRelaxed", "Relax",
-			fmt.Sprintf("eviction hold for %s relaxed (%s); eviction can proceed without a ready stand-in", dep.Name, relaxReason))
+		r.markHoldRelaxed(cr, &status, relaxReason)
 	default:
 		status.Phase = appsv1alpha1.PhaseSurging
 		setCond(&status, cr, appsv1alpha1.ConditionSurgeReady, metav1.ConditionFalse,
 			"AwaitingReadiness", fmt.Sprintf("waiting for %d ready replica(s) on healthy nodes (have %d)", base, a.viable))
 	}
 	return ctrl.Result{RequeueAfter: activeRequeue}, r.patchStatus(ctx, cr, status)
+}
+
+func (r *PodHandoffReconciler) markHoldRelaxed(cr *appsv1alpha1.PodHandoff, status *appsv1alpha1.PodHandoffStatus, reason string) {
+	previousPhase := status.Phase
+	status.Phase = appsv1alpha1.PhaseRelaxed
+	setCond(status, cr, appsv1alpha1.ConditionSurgeReady, metav1.ConditionFalse,
+		"Relaxed", "eviction released without a ready stand-in Pod ("+reason+")")
+	if status.LastReleaseTime == nil || status.LastSurgeTime != nil && status.LastReleaseTime.Before(status.LastSurgeTime) {
+		now := metav1.Now()
+		status.LastReleaseTime = &now
+	}
+	if previousPhase != appsv1alpha1.PhaseRelaxed {
+		metrics.RelaxedTotal.WithLabelValues(reason).Inc()
+	}
+	r.eventOnce(cr, status, corev1.EventTypeWarning, "HoldRelaxed", "Relax",
+		fmt.Sprintf("eviction hold relaxed (%s); eviction can proceed without a ready stand-in", reason))
 }
 
 func (r *PodHandoffReconciler) startSurge(ctx context.Context, cr *appsv1alpha1.PodHandoff, dep *appsv1.Deployment, base int32) error {
@@ -400,11 +436,6 @@ func (r *PodHandoffReconciler) stampDeletionCosts(ctx context.Context, pods []*c
 		current, hasCurrent := pod.Annotations[PodDeletionCostAnnotation]
 		_, managed := pod.Annotations[AnnotationPreviousDeletionCost]
 		if managed {
-			// A third party changed the deletion cost after PodHandoff wrote it.
-			// Never overwrite that newer intent during subsequent reconciles.
-			if current != doomedPodDeletionCost {
-				continue
-			}
 			continue
 		}
 		// The exact steering value already existed before PodHandoff saw the
@@ -620,25 +651,7 @@ func boolToStatus(b bool) metav1.ConditionStatus {
 }
 
 func statusEqual(a, b *appsv1alpha1.PodHandoffStatus) bool {
-	if a.Phase != b.Phase || a.Mode != b.Mode || !timePtrEqual(a.LastSurgeTime, b.LastSurgeTime) ||
-		!timePtrEqual(a.LastReleaseTime, b.LastReleaseTime) || !timePtrEqual(a.BlockedSince, b.BlockedSince) ||
-		len(a.Conditions) != len(b.Conditions) {
-		return false
-	}
-	for i := range a.Conditions {
-		ca, cb := a.Conditions[i], b.Conditions[i]
-		if ca.Type != cb.Type || ca.Status != cb.Status || ca.Reason != cb.Reason || ca.Message != cb.Message {
-			return false
-		}
-	}
-	return true
-}
-
-func timePtrEqual(a, b *metav1.Time) bool {
-	if a == nil || b == nil {
-		return a == b
-	}
-	return a.Equal(b)
+	return apiequality.Semantic.DeepEqual(a, b)
 }
 
 func doomSource(d *signal.NodeDoom) string {

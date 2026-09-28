@@ -51,7 +51,7 @@ const (
 type Adapter struct {
 	DoomLifetime time.Duration
 
-	reader   client.Reader
+	reader   client.Client
 	registry *signal.Registry
 }
 
@@ -111,6 +111,15 @@ func (a *Adapter) Handle(ctx context.Context, req admission.Request) admission.R
 		ExpiresAt: &expires,
 		Source:    SourcePrefix + req.UserInfo.Username,
 	})
+	patched := pod.DeepCopy()
+	if patched.Annotations == nil {
+		patched.Annotations = map[string]string{}
+	}
+	patched.Annotations[signal.EvictionUntilAnnotation] = expires.UTC().Format(time.RFC3339Nano)
+	if err := a.reader.Patch(ctx, patched, client.MergeFrom(&pod)); err != nil {
+		logf.FromContext(ctx).Error(err, "failed to publish eviction signal; allowing eviction")
+		return allowed
+	}
 	logf.FromContext(ctx).V(1).Info("eviction attempt observed",
 		"pod", req.Namespace+"/"+req.Name, "node", pod.Spec.NodeName, "evictor", req.UserInfo.Username)
 
@@ -194,7 +203,8 @@ func (a *Adapter) standInReady(ctx context.Context, dep *appsv1.Deployment, vict
 		if p.Spec.NodeName == victimNode {
 			continue
 		}
-		if _, doomed := a.registry.Lookup(p.Spec.NodeName); doomed {
+		_, evictionDoomed := signal.EvictionDoom(p, time.Now())
+		if _, doomed := a.registry.Lookup(p.Spec.NodeName); doomed || evictionDoomed {
 			continue
 		}
 		for _, c := range p.Status.Conditions {

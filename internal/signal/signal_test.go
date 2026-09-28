@@ -91,3 +91,25 @@ func TestInvoluntaryWinsOverVoluntary(t *testing.T) {
 		t.Fatal("expected the deadline to be carried through")
 	}
 }
+
+func TestRevivingExpiredSignalNotifies(t *testing.T) {
+	r := NewRegistry()
+	past := time.Now().Add(-time.Second)
+	r.Set(NodeDoom{Node: "n1", Class: VoluntaryUnbounded, Source: testEvictionSource, ExpiresAt: &past})
+	ch := r.Subscribe(1)
+	future := time.Now().Add(time.Minute)
+	r.Set(NodeDoom{Node: "n1", Class: VoluntaryUnbounded, Source: testEvictionSource, ExpiresAt: &future})
+	select {
+	case <-ch:
+	default:
+		t.Fatal("expected a notification when an expired signal is renewed")
+	}
+}
+
+func TestMoreUrgentChoosesEarliestInvoluntaryDeadline(t *testing.T) {
+	soon := time.Now().Add(30 * time.Second)
+	later := soon.Add(time.Minute)
+	if !MoreUrgent(NodeDoom{Class: Involuntary, Deadline: &soon}, NodeDoom{Class: Involuntary, Deadline: &later}) {
+		t.Fatal("expected earlier deadline to be more urgent")
+	}
+}

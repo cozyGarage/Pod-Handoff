@@ -43,6 +43,21 @@ type NodeDoom struct {
 	Source    string
 }
 
+const EvictionUntilAnnotation = "podhandoff.io/eviction-until"
+const EvictionSignalMaxAge = 90 * time.Second
+
+func EvictionDoom(pod *corev1.Pod, now time.Time) (NodeDoom, bool) {
+	value := pod.Annotations[EvictionUntilAnnotation]
+	expires, err := time.Parse(time.RFC3339Nano, value)
+	if err != nil || !now.Before(expires) || expires.After(now.Add(EvictionSignalMaxAge)) || pod.Spec.NodeName == "" {
+		return NodeDoom{}, false
+	}
+	return NodeDoom{
+		Node: pod.Spec.NodeName, Class: VoluntaryUnbounded, ExpiresAt: &expires,
+		Source: "eviction:" + pod.Namespace + "/" + pod.Name,
+	}, true
+}
+
 func (d NodeDoom) expired(now time.Time) bool {
 	return d.ExpiresAt != nil && now.After(*d.ExpiresAt)
 }
@@ -72,7 +87,7 @@ func (r *Registry) Set(d NodeDoom) {
 	prev, existed := bySource[d.Source]
 	bySource[d.Source] = d
 	r.mu.Unlock()
-	if !existed || !equalDoom(prev, d) {
+	if !existed || prev.expired(time.Now()) || !equalDoom(prev, d) {
 		r.notify(d.Node)
 	}
 }
@@ -109,7 +124,7 @@ func (r *Registry) Lookup(node string) (NodeDoom, bool) {
 		if d.expired(now) {
 			continue
 		}
-		if first || moreUrgent(d, best) {
+		if first || MoreUrgent(d, best) {
 			best = d
 			first = false
 		}
@@ -190,12 +205,17 @@ func equalDoom(a, b NodeDoom) bool {
 	}
 }
 
-func moreUrgent(a, b NodeDoom) bool {
+func MoreUrgent(a, b NodeDoom) bool {
 	if a.Class != b.Class {
 		return a.Class == Involuntary
 	}
-	if a.Class == Involuntary && a.Deadline != nil && b.Deadline != nil {
-		return a.Deadline.Before(*b.Deadline)
+	if a.Class == Involuntary {
+		if a.Deadline != nil && b.Deadline == nil {
+			return true
+		}
+		if a.Deadline != nil && b.Deadline != nil {
+			return a.Deadline.Before(*b.Deadline)
+		}
 	}
 	return false
 }
