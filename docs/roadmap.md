@@ -46,9 +46,16 @@ results.
    and a two-replica comparison are captured. A truly external probe, rollback,
    and cleanup still need evidence. TestLab routing and credentials stay
    outside this repository.
-4. Choose a stage workload only after confirming that temporary overlap is
+4. Repeat the two-replica comparison under controlled load. Measure throughput,
+   p50/p95/p99 latency, errors, and per-Pod CPU while draining with and without
+   PodHandoff. Choose a load where one surviving Pod can be compared against an
+   explicit service target; if it still meets the target, record that PodHandoff
+   adds no demonstrated user value for that workload. Do not add automatic
+   load-based scaling until this experiment shows a gap and enough lead time to
+   act safely.
+5. Choose a stage workload only after confirming that temporary overlap is
    safe. State the limits and record probe results; do not claim zero downtime.
-5. Complete license, SBOM, test, and release-note gates before promoting the
+6. Complete license, SBOM, test, and release-note gates before promoting the
    prerelease chart or image.
 
 ## Later work

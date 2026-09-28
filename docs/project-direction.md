@@ -15,7 +15,11 @@ For a Deployment that can safely overlap old and replacement Pods, the question
 during a drain is whether the old Pod can remain until its replacement is
 demonstrably ready. PodHandoff observes the disruption, adds temporary
 capacity, gates eviction on readiness when time permits, and returns the
-Deployment to its baseline after the handoff.
+Deployment to its baseline after the handoff. With multiple replicas, its
+potential value is preserving serving capacity while a node is drained; this
+only matters when the remaining replicas would otherwise breach a workload's
+latency or throughput target. The current lab probe did not load the service,
+so that value remains unproven.
 
 This makes the cost model explicit:
 
@@ -24,6 +28,12 @@ This makes the cost model explicit:
 | One replica | 1 | eviction then reschedule | planned and unannounced outages |
 | PodHandoff | 1 | temporary ready stand-in before eviction | unannounced node, storage, network, or application failure |
 | Permanent HA | 2 or more | capacity already exists | application-level correctness still required |
+
+For a multi-replica Deployment, compare PodHandoff with Kubernetes alone under
+load. If one remaining replica meets the service target, the drain hold may
+add no user-visible value. If capacity falls below the target, PodHandoff may
+preserve capacity during the announced drain; permanent replicas remain the
+protection when there is no warning or overlap is unsafe.
 
 ## Non-negotiable design principles
 
