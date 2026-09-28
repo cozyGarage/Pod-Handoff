@@ -124,10 +124,10 @@ var _ = Describe("Manager", Ordered, func() {
 
 		It("serves the webhook from every manager replica", func() {
 			By("scaling the manager to two replicas")
-			_, err := kubectl("scale", "deployment/controller-manager", "-n", namespace, "--replicas=2")
+			_, err := kubectl("scale", "deployment/podhandoff-controller-manager", "-n", namespace, "--replicas=2")
 			Expect(err).NotTo(HaveOccurred())
 			DeferCleanup(func() {
-				_, _ = kubectl("scale", "deployment/controller-manager", "-n", namespace, "--replicas=1")
+				_, _ = kubectl("scale", "deployment/podhandoff-controller-manager", "-n", namespace, "--replicas=1")
 			})
 
 			By("waiting for both manager replicas to be Ready and registered as webhook endpoints")
