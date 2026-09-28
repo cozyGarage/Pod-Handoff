@@ -30,9 +30,11 @@ does not establish production readiness or protection from unannounced
 failures. Follow-up drills covered a two-replica setup, an unready replacement,
 and a controller outage. In the two-replica run Kubernetes alone also had no
 failed probes, so PodHandoff showed no binary availability gain there. See the
-[pilot evidence](docs/evidence/pilot-2026-09-28/README.md),
-[roadmap](docs/roadmap.md), and
-[project direction](docs/project-direction.md) for scope and remaining gates.
+[pilot evidence](docs/evidence/pilot-2026-09-28/README.md) for a first
+load-sensitive comparison: errors fell from 4/629 to 0/629, but noisy latency
+and a worse protected p99 leave the capacity benefit unproven. The
+[roadmap](docs/roadmap.md) and [project direction](docs/project-direction.md)
+describe the scope and remaining gates.
 
 PodHandoff is derived from [Understudy](UPSTREAM.md). The imported baseline,
 local changes, and attribution are recorded explicitly there.

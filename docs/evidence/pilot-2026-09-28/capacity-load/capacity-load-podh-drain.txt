@@ -1,0 +1,12 @@
+node/podhandoff-work1 cordoned
+evicting pod podhandoff-e2e-pilot/canary-7d49f9c8bb-btntb
+error when evicting pods/"canary-7d49f9c8bb-btntb" -n "podhandoff-e2e-pilot" (will retry after 5s): admission webhook "eviction-hold.podhandoff.io" denied the request: PodHandoff is preparing a stand-in for podhandoff-e2e-pilot/canary-7d49f9c8bb-btntb; retry shortly
+evicting pod podhandoff-e2e-pilot/canary-7d49f9c8bb-btntb
+error when evicting pods/"canary-7d49f9c8bb-btntb" -n "podhandoff-e2e-pilot" (will retry after 5s): admission webhook "eviction-hold.podhandoff.io" denied the request: PodHandoff is preparing a stand-in for podhandoff-e2e-pilot/canary-7d49f9c8bb-btntb; retry shortly
+evicting pod podhandoff-e2e-pilot/canary-7d49f9c8bb-btntb
+error when evicting pods/"canary-7d49f9c8bb-btntb" -n "podhandoff-e2e-pilot" (will retry after 5s): admission webhook "eviction-hold.podhandoff.io" denied the request: PodHandoff is preparing a stand-in for podhandoff-e2e-pilot/canary-7d49f9c8bb-btntb; retry shortly
+evicting pod podhandoff-e2e-pilot/canary-7d49f9c8bb-btntb
+error when evicting pods/"canary-7d49f9c8bb-btntb" -n "podhandoff-e2e-pilot" (will retry after 5s): admission webhook "eviction-hold.podhandoff.io" denied the request: PodHandoff is preparing a stand-in for podhandoff-e2e-pilot/canary-7d49f9c8bb-btntb; retry shortly
+evicting pod podhandoff-e2e-pilot/canary-7d49f9c8bb-btntb
+pod/canary-7d49f9c8bb-btntb evicted
+node/podhandoff-work1 drained

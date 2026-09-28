@@ -1,0 +1,4 @@
+node/podhandoff-work1 cordoned
+evicting pod podhandoff-e2e-pilot/canary-7d49f9c8bb-kttvq
+pod/canary-7d49f9c8bb-kttvq evicted
+node/podhandoff-work1 drained

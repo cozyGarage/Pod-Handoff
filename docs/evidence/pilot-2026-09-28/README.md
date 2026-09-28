@@ -134,6 +134,54 @@ This tests an unavailable webhook, not a webhook that accepts a connection
 and hangs until `timeoutSeconds` expires. That API-server timeout path still
 needs an integration test.
 
+## Load-sensitive two-replica comparison
+
+To test whether preserving two Ready replicas matters under demand, the same
+canary was given a CPU-work endpoint and a 500m CPU limit per Pod. A fixed-rate
+driver sent new HTTP connections through the Service, recorded each response's
+latency/status and serving Pod, and sampled Pod CPU. The workers were spread
+across `work1` and `work2`; a soft spread preference allowed Kubernetes to
+place the replacement on the surviving worker. The offered load was 7 requests
+per second for 90 seconds, with the drain started after 25 seconds.
+
+| Mode | Requests | Failed | Whole-run p95 | Whole-run p99 | Drain time |
+|---|---:|---:|---:|---:|---:|
+| Kubernetes only | 629 | 4 | 956 ms | 1,239 ms | 2.3 s |
+| PodHandoff | 629 | 0 | 1,009 ms | 2,352 ms | 22.0 s |
+
+PodHandoff held eviction while it brought up the third Pod. `SurgeReady` was
+recorded about 17 seconds after `SurgeStarted`, and eviction then proceeded.
+For Kubernetes alone, the interval while only one replica remained had a
+1,241 ms p95 across 102 samples; the replacement became Ready during that
+interval. The result is suggestive that holding the old Pod can protect
+capacity, but it does **not** establish a latency improvement: the protected
+run had similarly high whole-run latency and a higher p99, and both runs had
+large latency swings before and after the drain. This is one run per mode.
+
+A lower-load control used 300,000 hash iterations per request at 3 requests per
+second, with Kubernetes alone. It returned 178/179 successful requests with a
+225.8 ms whole-run p95 through the drain. That workload did not show a
+user-visible need for PodHandoff. The control was not repeated with PodHandoff
+because its baseline remained within the selected 1-second response target.
+
+Raw 7 requests/second samples are in [baseline](capacity-load/capacity-load-baseline.csv)
+and [PodHandoff](capacity-load/capacity-load-podh.csv); the matching [baseline CPU](capacity-load/capacity-load-baseline-cpu.txt)
+and [PodHandoff CPU](capacity-load/capacity-load-podh-cpu.txt) samples, plus the
+[baseline drain log](capacity-load/capacity-load-baseline-drain.txt) and
+[PodHandoff drain log](capacity-load/capacity-load-podh-drain.txt), are preserved.
+The lower-load [control request](capacity-load/300k-3rps/baseline.csv), [CPU](capacity-load/300k-3rps/baseline-cpu.txt),
+and [drain log](capacity-load/300k-3rps/baseline-drain.txt) are also preserved.
+The canary used image tag `podhandoff-lab-canary-load:v0.0.3`, a 200,000-iteration
+SHA-256 handler, 250m CPU requests, and 500m CPU limits. The test source was the
+`dd36626` checkout plus local changes to the test canary and load driver. The
+PodHandoff controller image was `podhandoff-lab-controller:0.1.0`.
+
+This is still a synthetic capacity experiment, not a representative service
+benchmark. One trial per mode, noisy latency, and the absence of a real
+application SLO mean the product value under load remains unproven. Repeat with
+a stable workload and an explicit service target before changing the
+controller's readiness threshold.
+
 ## What this supports
 
 Kubernetes reschedules a Pod after eviction, but for a one-replica Deployment
@@ -159,8 +207,9 @@ failure-domain placement instead.
 - The probe ran from another VM in the same cluster network. It did not
   represent an end-user path or record request latency, throughput, or
   application-level correctness.
-- No VM crash, network partition, application crash, overloaded service,
-  stateful workload, or GitOps reconciliation was tested.
+- No VM crash, network partition, application crash, representative production
+  service, stateful workload, or GitOps reconciliation was tested. The
+  synthetic CPU-load run above is too noisy to count as an SLO validation.
 - The test does not establish protection from unannounced failures. The
   eviction webhook cannot hold an eviction after the node or control plane
   has already failed.

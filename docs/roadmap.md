@@ -46,13 +46,16 @@ results.
    and a two-replica comparison are captured. A truly external probe, rollback,
    and cleanup still need evidence. TestLab routing and credentials stay
    outside this repository.
-4. Repeat the two-replica comparison under controlled load. Measure throughput,
-   p50/p95/p99 latency, errors, and per-Pod CPU while draining with and without
-   PodHandoff. Choose a load where one surviving Pod can be compared against an
-   explicit service target; if it still meets the target, record that PodHandoff
-   adds no demonstrated user value for that workload. Do not add automatic
-   load-based scaling until this experiment shows a gap and enough lead time to
-   act safely.
+4. Repeat the two-replica comparison under controlled load. One synthetic run
+   at 7 requests/second recorded 4 failures without PodHandoff and none with it,
+   but had large latency swings in both modes and a worse protected-run p99. A
+   lower-load control stayed healthy with Kubernetes alone. Treat these as
+   directional only. Repeat with stable latency, throughput, errors, and
+   per-Pod CPU against an explicit service target before claiming value.
+   Consider a configurable minimum Ready replica floor only if repeat runs
+   show that preserving full baseline capacity is useful and the floor maps to
+   a real workload SLO. Do not add automatic load-based scaling until the
+   experiment shows a gap and enough lead time to act safely.
 5. Choose a stage workload only after confirming that temporary overlap is
    safe. State the limits and record probe results; do not claim zero downtime.
 6. Complete license, SBOM, test, and release-note gates before promoting the
@@ -62,6 +65,8 @@ results.
 
 - Validate GCP and Azure sentinels against their real interruption mechanisms.
 - Consider Azure Scheduled Event approval after traffic readiness.
+- Consider a configurable minimum Ready replica floor after the load test
+  establishes the capacity target and validates controller/webhook behavior.
 - Revisit interception if drainers adopt the Kubernetes EvictionRequest API.
 - Consider a `kubectl podhandoff status` command if incident use shows a need.
 

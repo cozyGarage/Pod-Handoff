@@ -18,8 +18,11 @@ capacity, gates eviction on readiness when time permits, and returns the
 Deployment to its baseline after the handoff. With multiple replicas, its
 potential value is preserving serving capacity while a node is drained; this
 only matters when the remaining replicas would otherwise breach a workload's
-latency or throughput target. The current lab probe did not load the service,
-so that value remains unproven.
+latency or throughput target. A first synthetic load comparison showed a
+possible reduction in errors during a drain, but latency varied widely in both
+modes; it does not yet establish an SLO improvement. A lower-load Kubernetes
+baseline stayed healthy through the drain, illustrating that extra capacity
+has no demonstrated user value when one Pod already meets the target.
 
 This makes the cost model explicit:
 
