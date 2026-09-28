@@ -35,18 +35,20 @@ import (
 	"github.com/cozyGarage/podhandoff/internal/signal"
 )
 
+const fixtureTarget = "work"
+
 func TestEvictionSignalIsSharedAndDoomedStandInIsRejected(t *testing.T) {
 	scheme := runtime.NewScheme()
 	_ = corev1.AddToScheme(scheme)
 	_ = appsv1.AddToScheme(scheme)
 	_ = appsv1alpha1.AddToScheme(scheme)
 	dep := &appsv1.Deployment{
-		ObjectMeta: metav1.ObjectMeta{Name: "work", Namespace: "ns", UID: "dep", Annotations: map[string]string{baseReplicasAnnotation: "1"}},
-		Spec:       appsv1.DeploymentSpec{Replicas: ptr.To(int32(2)), Selector: &metav1.LabelSelector{MatchLabels: map[string]string{"app": "work"}}},
+		ObjectMeta: metav1.ObjectMeta{Name: fixtureTarget, Namespace: "ns", UID: "dep", Annotations: map[string]string{baseReplicasAnnotation: "1"}},
+		Spec:       appsv1.DeploymentSpec{Replicas: ptr.To(int32(2)), Selector: &metav1.LabelSelector{MatchLabels: map[string]string{"app": fixtureTarget}}},
 	}
-	cr := &appsv1alpha1.PodHandoff{ObjectMeta: metav1.ObjectMeta{Name: "protect", Namespace: "ns"}, Spec: appsv1alpha1.PodHandoffSpec{TargetRef: appsv1alpha1.TargetReference{Name: "work"}}}
-	rs := &appsv1.ReplicaSet{ObjectMeta: metav1.ObjectMeta{Name: "rs", Namespace: "ns", UID: "rs", OwnerReferences: []metav1.OwnerReference{{APIVersion: "apps/v1", Kind: "Deployment", Name: "work", UID: "dep", Controller: ptr.To(true)}}}}
-	victim := &corev1.Pod{ObjectMeta: metav1.ObjectMeta{Name: "victim", Namespace: "ns", Labels: map[string]string{"app": "work"}, OwnerReferences: []metav1.OwnerReference{{APIVersion: "apps/v1", Kind: "ReplicaSet", Name: "rs", UID: "rs", Controller: ptr.To(true)}}}, Spec: corev1.PodSpec{NodeName: "node1"}}
+	cr := &appsv1alpha1.PodHandoff{ObjectMeta: metav1.ObjectMeta{Name: "protect", Namespace: "ns"}, Spec: appsv1alpha1.PodHandoffSpec{TargetRef: appsv1alpha1.TargetReference{Name: fixtureTarget}}}
+	rs := &appsv1.ReplicaSet{ObjectMeta: metav1.ObjectMeta{Name: "rs", Namespace: "ns", UID: "rs", OwnerReferences: []metav1.OwnerReference{{APIVersion: "apps/v1", Kind: "Deployment", Name: fixtureTarget, UID: "dep", Controller: ptr.To(true)}}}}
+	victim := &corev1.Pod{ObjectMeta: metav1.ObjectMeta{Name: "victim", Namespace: "ns", Labels: map[string]string{"app": fixtureTarget}, OwnerReferences: []metav1.OwnerReference{{APIVersion: "apps/v1", Kind: "ReplicaSet", Name: "rs", UID: "rs", Controller: ptr.To(true)}}}, Spec: corev1.PodSpec{NodeName: "node1"}}
 	standIn := victim.DeepCopy()
 	standIn.Name = "stand-in"
 	standIn.Spec.NodeName = "node2"

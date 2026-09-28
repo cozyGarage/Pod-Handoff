@@ -122,6 +122,30 @@ var _ = Describe("Manager", Ordered, func() {
 			Eventually(verifyControllerUp).Should(Succeed())
 		})
 
+		It("serves the webhook from every manager replica", func() {
+			By("scaling the manager to two replicas")
+			_, err := kubectl("scale", "deployment/controller-manager", "-n", namespace, "--replicas=2")
+			Expect(err).NotTo(HaveOccurred())
+			DeferCleanup(func() {
+				_, _ = kubectl("scale", "deployment/controller-manager", "-n", namespace, "--replicas=1")
+			})
+
+			By("waiting for both manager replicas to be Ready and registered as webhook endpoints")
+			verifyReplicasReady := func(g Gomega) {
+				output, getErr := kubectl("get", "pods", "-n", namespace,
+					"-l", "control-plane=controller-manager", "-o",
+					"jsonpath={range .items[*]}{.status.conditions[?(@.type=='Ready')].status}{'\\n'}{end}")
+				g.Expect(getErr).NotTo(HaveOccurred())
+				g.Expect(utils.GetNonEmptyLines(output)).To(Equal([]string{"True", "True"}))
+
+				output, getErr = kubectl("get", "endpoints", "webhook-service", "-n", namespace,
+					"-o", "jsonpath={range .subsets[0].addresses[*]}{.ip}{'\\n'}{end}")
+				g.Expect(getErr).NotTo(HaveOccurred())
+				g.Expect(utils.GetNonEmptyLines(output)).To(HaveLen(2))
+			}
+			Eventually(verifyReplicasReady).Should(Succeed())
+		})
+
 		It("should ensure the metrics endpoint is serving metrics", func() {
 			By("creating a ClusterRoleBinding for the service account to allow access to metrics")
 			cmd := exec.Command("kubectl", "create", "clusterrolebinding", metricsRoleBindingName,

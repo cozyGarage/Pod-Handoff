@@ -19,6 +19,7 @@ package controller
 
 import (
 	"fmt"
+	"slices"
 	"time"
 
 	. "github.com/onsi/ginkgo/v2"
@@ -40,9 +41,10 @@ import (
 var nsCounter int
 
 const (
-	appLabel           = "app"
-	testContainerName  = "main"
-	testContainerImage = "registry.k8s.io/pause:3.10"
+	appLabel                = "app"
+	deploymentRolloutReason = "ReplicaSetUpdated"
+	testContainerName       = "main"
+	testContainerImage      = "registry.k8s.io/pause:3.10"
 )
 
 type fixture struct {
@@ -168,7 +170,7 @@ func deploymentPodOwnerReferences(ns, app string) []metav1.OwnerReference {
 				Namespace: rsKey.Namespace,
 				OwnerReferences: []metav1.OwnerReference{{
 					APIVersion: appsv1.SchemeGroupVersion.String(),
-					Kind:       "Deployment",
+					Kind:       targetDeploymentKind,
 					Name:       dep.Name,
 					UID:        dep.UID,
 					Controller: ptr.To(true),
@@ -344,7 +346,7 @@ var _ = Describe("PodHandoff controller", func() {
 			dep := getDeployment(f)
 			dep.Status.UpdatedReplicas = 0
 			dep.Status.Conditions = []appsv1.DeploymentCondition{{
-				Type: appsv1.DeploymentProgressing, Status: corev1.ConditionTrue, Reason: "ReplicaSetUpdated",
+				Type: appsv1.DeploymentProgressing, Status: corev1.ConditionTrue, Reason: deploymentRolloutReason,
 			}}
 			return k8sClient.Status().Update(ctx, dep)
 		}).Should(Succeed())
@@ -413,7 +415,7 @@ var _ = Describe("PodHandoff controller", func() {
 			dep.Status.Conditions = []appsv1.DeploymentCondition{{
 				Type:   appsv1.DeploymentProgressing,
 				Status: corev1.ConditionTrue,
-				Reason: "ReplicaSetUpdated",
+				Reason: deploymentRolloutReason,
 			}}
 			dep.Status.UpdatedReplicas = 0
 			return k8sClient.Status().Update(ctx, dep)
@@ -695,12 +697,7 @@ func getPodDeletionCost(f *fixture, podName string) string {
 }
 
 func controllerHasFinalizer(cr *appsv1alpha1.PodHandoff) bool {
-	for _, finalizer := range cr.Finalizers {
-		if finalizer == PodHandoffFinalizer {
-			return true
-		}
-	}
-	return false
+	return slices.Contains(cr.Finalizers, PodHandoffFinalizer)
 }
 
 func findCond(cr *appsv1alpha1.PodHandoff, condType string) *metav1.Condition {

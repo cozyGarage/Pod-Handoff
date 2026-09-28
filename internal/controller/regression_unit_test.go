@@ -33,6 +33,12 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 )
 
+const (
+	regressionTarget = "work"
+	doomedNode       = "doomed"
+	laterNode        = "later"
+)
+
 func regressionFixture(t *testing.T, rollout bool) (*PodHandoffReconciler, *appsv1alpha1.PodHandoff, *appsv1.Deployment) {
 	t.Helper()
 	scheme := runtime.NewScheme()
@@ -41,21 +47,21 @@ func regressionFixture(t *testing.T, rollout bool) (*PodHandoffReconciler, *apps
 	_ = appsv1alpha1.AddToScheme(scheme)
 	cr := &appsv1alpha1.PodHandoff{
 		ObjectMeta: metav1.ObjectMeta{Name: "protect", Namespace: "ns", Finalizers: []string{PodHandoffFinalizer}},
-		Spec:       appsv1alpha1.PodHandoffSpec{TargetRef: appsv1alpha1.TargetReference{Name: "work"}, ReadinessDeadlineSeconds: ptr.To(int32(1))},
+		Spec:       appsv1alpha1.PodHandoffSpec{TargetRef: appsv1alpha1.TargetReference{Name: regressionTarget}, ReadinessDeadlineSeconds: ptr.To(int32(1))},
 	}
 	dep := &appsv1.Deployment{
-		ObjectMeta: metav1.ObjectMeta{Name: "work", Namespace: "ns", UID: "dep", Generation: 1},
-		Spec:       appsv1.DeploymentSpec{Replicas: ptr.To(int32(1)), Selector: &metav1.LabelSelector{MatchLabels: map[string]string{"app": "work"}}},
+		ObjectMeta: metav1.ObjectMeta{Name: regressionTarget, Namespace: "ns", UID: "dep", Generation: 1},
+		Spec:       appsv1.DeploymentSpec{Replicas: ptr.To(int32(1)), Selector: &metav1.LabelSelector{MatchLabels: map[string]string{"app": regressionTarget}}},
 		Status:     appsv1.DeploymentStatus{ObservedGeneration: 1, UpdatedReplicas: 0},
 	}
 	if rollout {
-		dep.Status.Conditions = []appsv1.DeploymentCondition{{Type: appsv1.DeploymentProgressing, Status: corev1.ConditionTrue, Reason: "ReplicaSetUpdated"}}
+		dep.Status.Conditions = []appsv1.DeploymentCondition{{Type: appsv1.DeploymentProgressing, Status: corev1.ConditionTrue, Reason: deploymentRolloutReason}}
 	}
-	rs := &appsv1.ReplicaSet{ObjectMeta: metav1.ObjectMeta{Name: "rs", Namespace: "ns", UID: "rs", OwnerReferences: []metav1.OwnerReference{{APIVersion: "apps/v1", Kind: "Deployment", Name: "work", UID: "dep", Controller: ptr.To(true)}}}}
-	pod := &corev1.Pod{ObjectMeta: metav1.ObjectMeta{Name: "victim", Namespace: "ns", Labels: map[string]string{"app": "work"}, OwnerReferences: []metav1.OwnerReference{{APIVersion: "apps/v1", Kind: "ReplicaSet", Name: "rs", UID: "rs", Controller: ptr.To(true)}}}, Spec: corev1.PodSpec{NodeName: "doomed"}}
+	rs := &appsv1.ReplicaSet{ObjectMeta: metav1.ObjectMeta{Name: "rs", Namespace: "ns", UID: "rs", OwnerReferences: []metav1.OwnerReference{{APIVersion: "apps/v1", Kind: targetDeploymentKind, Name: regressionTarget, UID: "dep", Controller: ptr.To(true)}}}}
+	pod := &corev1.Pod{ObjectMeta: metav1.ObjectMeta{Name: "victim", Namespace: "ns", Labels: map[string]string{"app": regressionTarget}, OwnerReferences: []metav1.OwnerReference{{APIVersion: "apps/v1", Kind: "ReplicaSet", Name: "rs", UID: "rs", Controller: ptr.To(true)}}}, Spec: corev1.PodSpec{NodeName: doomedNode}}
 	c := fake.NewClientBuilder().WithScheme(scheme).WithStatusSubresource(cr, dep).WithObjects(cr, dep, rs, pod).Build()
 	reg := signal.NewRegistry()
-	reg.Set(signal.NodeDoom{Node: "doomed", Source: "test", Class: signal.VoluntaryUnbounded})
+	reg.Set(signal.NodeDoom{Node: doomedNode, Source: "test", Class: signal.VoluntaryUnbounded})
 	return &PodHandoffReconciler{Client: c, Registry: reg}, cr, dep
 }
 
@@ -108,13 +114,13 @@ func TestFinalizerKeepsSharedSurgeForOtherProtector(t *testing.T) {
 func TestAssessmentChoosesEarliestInvoluntaryDeadline(t *testing.T) {
 	r, cr, dep := regressionFixture(t, false)
 	soon, later := time.Now().Add(30*time.Second), time.Now().Add(5*time.Minute)
-	r.Registry.Set(signal.NodeDoom{Node: "doomed", Source: "soon", Class: signal.Involuntary, Deadline: &soon})
-	r.Registry.Set(signal.NodeDoom{Node: "later", Source: "later", Class: signal.Involuntary, Deadline: &later})
+	r.Registry.Set(signal.NodeDoom{Node: doomedNode, Source: "soon", Class: signal.Involuntary, Deadline: &soon})
+	r.Registry.Set(signal.NodeDoom{Node: laterNode, Source: laterNode, Class: signal.Involuntary, Deadline: &later})
 	var pod corev1.Pod
 	if err := r.Get(context.Background(), client.ObjectKey{Namespace: "ns", Name: "victim"}, &pod); err != nil {
 		t.Fatal(err)
 	}
-	pod.Name, pod.Spec.NodeName = "later-victim", "later"
+	pod.Name, pod.Spec.NodeName = "later-victim", laterNode
 	pod.ResourceVersion = ""
 	pod.UID = ""
 	if err := r.Create(context.Background(), &pod); err != nil {

@@ -47,6 +47,7 @@ import (
 )
 
 const (
+	targetDeploymentKind           = "Deployment"
 	AnnotationBaseReplicas         = "podhandoff.io/base-replicas"
 	AnnotationPreviousDeletionCost = "podhandoff.io/previous-pod-deletion-cost"
 	LabelOwned                     = "podhandoff.io/owned"
@@ -109,7 +110,7 @@ func (r *PodHandoffReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 
 	status := *cr.Status.DeepCopy()
 
-	if kind := cr.Spec.TargetRef.Kind; kind != "" && kind != "Deployment" {
+	if kind := cr.Spec.TargetRef.Kind; kind != "" && kind != targetDeploymentKind {
 		return r.markUnsupported(ctx, &cr, status,
 			fmt.Sprintf("target kind %q is not supported (only Deployment); skipping", kind))
 	}
@@ -128,7 +129,7 @@ func (r *PodHandoffReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 		}
 		return ctrl.Result{}, err
 	}
-	setCond(&status, &cr, appsv1alpha1.ConditionTargetSupported, metav1.ConditionTrue, "Deployment", "target resolved")
+	setCond(&status, &cr, appsv1alpha1.ConditionTargetSupported, metav1.ConditionTrue, targetDeploymentKind, "target resolved")
 
 	surgeActive := false
 	base := int32(1)
@@ -184,7 +185,7 @@ func (r *PodHandoffReconciler) finalize(ctx context.Context, cr *appsv1alpha1.Po
 	if err != nil {
 		return err
 	}
-	if !remaining && (cr.Spec.TargetRef.Kind == "" || cr.Spec.TargetRef.Kind == "Deployment") {
+	if !remaining && (cr.Spec.TargetRef.Kind == "" || cr.Spec.TargetRef.Kind == targetDeploymentKind) {
 		var dep appsv1.Deployment
 		err := r.Get(ctx, types.NamespacedName{Namespace: cr.Namespace, Name: cr.Spec.TargetRef.Name}, &dep)
 		switch {
@@ -227,7 +228,7 @@ func (r *PodHandoffReconciler) hasOtherProtector(ctx context.Context, cr *appsv1
 	for i := range list.Items {
 		other := &list.Items[i]
 		if other.Name != cr.Name && other.DeletionTimestamp.IsZero() && other.Spec.TargetRef.Name == cr.Spec.TargetRef.Name &&
-			(other.Spec.TargetRef.Kind == "" || other.Spec.TargetRef.Kind == "Deployment") {
+			(other.Spec.TargetRef.Kind == "" || other.Spec.TargetRef.Kind == targetDeploymentKind) {
 			return true, nil
 		}
 	}
