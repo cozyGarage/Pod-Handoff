@@ -1,13 +1,17 @@
-# GitOps coexistence
+# GitOps field ownership (unverified example)
 
-PodHandoff temporarily owns exactly two fields on each protected Deployment:
+This page is a learning example of field ownership conflicts. During a handoff,
+PodHandoff temporarily changes two fields on the target Deployment:
 
 - `/spec/replicas`
 - `/metadata/annotations/podhandoff.io~1base-replicas`
 
-Argo CD automated self-healing must ignore those fields while respecting the
-ignore rules during sync. Scope the rule to each protected Deployment; do not
-create a cluster-wide exception.
+If a GitOps reconciler continually reapplies a different replica count or
+removes the annotation, it can fight the controller. The example below shows
+one scoped Argo CD configuration that may avoid that conflict. It has not been
+verified in a live Argo CD installation; treat it as something to test in a
+disposable cluster, not a production recipe. Scope ignore rules to the
+protected Deployment rather than the whole cluster.
 
 ```yaml
 spec:
@@ -24,8 +28,7 @@ spec:
       - RespectIgnoreDifferences=true
 ```
 
-The owning Application or ApplicationSet must carry this configuration before
-the pilot. Prove the contract during an active surge:
+To study the interaction, test during an active surge:
 
 1. Argo CD remains `Synced` and does not reset the temporary replica count.
 2. PodHandoff records the original replica count in the annotation.
@@ -34,9 +37,9 @@ the pilot. Prove the contract during an active surge:
    own annotation.
 5. Argo CD still converges an unrelated intentional Deployment change.
 
-Do not use this pattern on a Deployment whose replicas are actively owned by an
-HPA until field ownership has been tested explicitly. Flux support also remains
-unverified; do not infer an equivalent rule from this Argo CD example.
+The HPA interaction is also unverified because both the HPA and PodHandoff can
+write replica count. Flux behavior has not been tested; do not assume this
+Argo CD example applies to it.
 
 `hack/check-gitops-contract.sh` is a static contract test. It fails CI if the
 controller annotation or the documented Argo CD paths drift apart.

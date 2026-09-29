@@ -1,4 +1,9 @@
-# PodHandoff drain comparison
+# Historical TestLab experiments
+
+This report preserves a disposable-cluster study performed while evaluating
+PodHandoff as an operational tool. It is now retained as an educational
+example of test design, evidence collection, and limits on conclusions. The
+synthetic results are not production guidance or an availability claim.
 
 ## Finding
 
@@ -182,7 +187,29 @@ application SLO mean the product value under load remains unproven. Repeat with
 a stable workload and an explicit service target before changing the
 controller's readiness threshold.
 
-## What this supports
+A follow-up steady-state calibration at 5 requests/second and 300,000 hash
+iterations compared one and two replicas without a drain. The two-replica run
+had 4 failed requests out of 299 and a 2.9 s p95 across successful responses;
+the one-replica run had 274 failures out of 299 and a 4.3 s p95 across its 25
+successful responses. CPU reached the 500m container limit and readiness
+probes timed out. This is an overload-boundary check, not a useful
+drain comparison: neither replica count met the selected 1-second target, and
+the test does not identify a stable operating point where two replicas meet
+the target but one does not. Raw [two-replica](capacity-load/5rps-300k/two-replicas.csv)
+and [one-replica](capacity-load/5rps-300k/one-replica.csv) samples are retained
+to make that failed calibration explicit.
+
+At 4 requests/second with the same handler, two replicas completed all 239
+requests (successful-response p95 1.35 s). One replica completed 104/239;
+the other 135 requests failed, and successful-response p95 was 4.87 s. This
+points to a capacity-sensitive workload where retaining two serving replicas
+could matter, but it is one trial per replica count, and two replicas still
+missed the existing 1-second target. This was a steady-state calibration, not
+a drain comparison, so it does not yet show that PodHandoff improves service
+outcomes. The raw [two-replica](capacity-load/4rps-300k/two-replicas.csv) and
+[one-replica](capacity-load/4rps-300k/one-replica.csv) data are available.
+
+## What the experiment demonstrates
 
 Kubernetes reschedules a Pod after eviction, but for a one-replica Deployment
 that still leaves a gap while the replacement starts and becomes Ready.
@@ -191,19 +218,27 @@ replacement. In this experiment, PodHandoff made the drain wait instead: the
 operator prepared temporary capacity, and admission allowed the eviction
 retry after the stand-in was Ready.
 
-A plausible pilot candidate is a stateless internal API or control-plane
-service with a slow cold start, a meaningful readiness check, and safe
-short-lived overlap. If permanent redundancy is affordable or protection
-from unannounced failures is required, use multiple replicas and suitable
-failure-domain placement instead.
+The narrow mechanism under study is delaying a planned eviction while a
+slow-starting replacement becomes Ready. The report also shows cases where
+Kubernetes alone already maintained service, and where PodHandoff did not
+protect service because its controller was unavailable or no replacement
+could be scheduled.
 
-## Limits and next evidence
+## Limits and possible follow-up exercises
 
 - The single-replica comparison has two trials per mode, against one
   synthetic service and planned worker drains. This is a useful signal, not a
   reliability estimate.
 - The two-replica comparison is one trial per mode. It does not test
   throughput or whether preserving capacity changes user latency under load.
+- The 5 requests/second calibration overloaded both configurations; it does
+  not establish a capacity-preservation benefit. A useful next comparison
+  needs repeated no-drain runs that first show two replicas inside a declared
+  SLO while one replica misses it, followed by repeated drain runs at that load.
+- At 4 requests/second, two replicas completed all requests while one replica
+  had 135 failures, but this was a single synthetic steady-state trial and
+  two-replica p95 still exceeded the 1-second target. Repeat this calibration,
+  then compare both drain modes at a load that meets the chosen SLO.
 - The probe ran from another VM in the same cluster network. It did not
   represent an end-user path or record request latency, throughput, or
   application-level correctness.
@@ -213,9 +248,9 @@ failure-domain placement instead.
 - The test does not establish protection from unannounced failures. The
   eviction webhook cannot hold an eviction after the node or control plane
   has already failed.
-- A production-oriented pilot should repeat the comparison more times, use
-  an externally located probe, record latency and application errors, and
-  exercise the webhook timeout, rollback, and cleanup paths.
+- A stronger educational experiment would repeat comparisons, use a probe
+  outside the cluster, record latency and application errors, and exercise
+  webhook timeout, rollback, and cleanup paths.
 
 The manifests and probe used for trial 1 are preserved here:
 [canary](canary.yaml), [PodHandoff](podhandoff.yaml), and [probe](probe.sh).

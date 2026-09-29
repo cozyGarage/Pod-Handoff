@@ -1,7 +1,9 @@
-# How PodHandoff works
+# Handoff flow
 
-PodHandoff protects a single-replica Deployment during announced node
-disruptions without keeping a second replica running all the time.
+This walkthrough follows one eviction through the educational controller
+example. The [architecture guide](architecture.md) explains the component
+boundaries and Kubernetes concepts; the [build guide](building.md) maps them
+to the source tree.
 
 ## The mechanism
 
@@ -91,9 +93,8 @@ every mode, since a stand-in started early costs a pod for a few minutes
 and a stand-in started late costs the outage it was meant to prevent.
 
 The field was called `hostageMode` when a budget took the eviction
-hostage. That spelling is deprecated and still honoured: a resource
-setting only the old field keeps working, and the operator raises one
-warning event, until the field is removed in a later release.
+hostage. That spelling is deprecated but still honored: a resource setting
+only the old field keeps working, and the operator raises one warning event.
 
 ```mermaid
 flowchart TD
@@ -128,12 +129,14 @@ returns to its normal eviction behavior. Deleting the
 holds immediately.
 
 An operator restart therefore creates a protection gap rather than a stuck
-cluster. Run two replicas on different nodes for production. Reconciliation
-uses leader election, but every replica serves webhook traffic.
+cluster. This is the fail-open tradeoff: cluster operations keep moving while
+the handoff protection is unavailable. Reconciliation uses leader election,
+but every operator replica serves webhook traffic.
 
-The upgrade from 0.3.x runs a leader-gated startup sweep that deletes legacy
-PodDisruptionBudgets labeled `podhandoff.io/owned=true`. PDB read/delete RBAC
-exists only for that migration and is scheduled for removal in v0.5.0.
+The code retains a leader-gated startup sweep for legacy PodDisruptionBudgets
+labeled `podhandoff.io/owned=true`. The associated PDB permissions exist for
+migration cleanup; this is a useful example of compatibility code that can
+remain after the main design changes.
 
 ## Metrics
 
@@ -145,9 +148,11 @@ exists only for that migration and is scheduled for removal in v0.5.0.
 
 ## Limits
 
-PodHandoff guarantees a ready replacement, not preservation of requests
-already in flight. Use a `preStop` hook long enough for load balancer
-deregistration.
+When a hold is successfully released, the replacement has passed Kubernetes
+readiness checks; deadline relaxation and webhook failure can still let an
+eviction proceed without that replacement. This does not preserve requests
+already in flight. A workload needs its own graceful-shutdown and traffic
+deregistration behavior.
 
 Cold capacity still takes time. Voluntary disruptions can wait; involuntary
 ones race the platform deadline. Workloads that cannot briefly run two

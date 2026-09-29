@@ -1,0 +1,240 @@
+timestamp_utc,http_status,latency_ms,backend_pod,error
+2026-09-29T00:13:29.360206736Z,200,504.702,canary-7d9c85fc95-m6r2s,
+2026-09-29T00:13:29.860207534Z,200,500.845,canary-7d9c85fc95-m6r2s,
+2026-09-29T00:13:30.110207105Z,200,660.030,canary-7d9c85fc95-m6r2s,
+2026-09-29T00:13:29.610206654Z,200,1269.699,canary-7d9c85fc95-m6r2s,
+2026-09-29T00:13:30.360206774Z,200,808.624,canary-7d9c85fc95-m6r2s,
+2026-09-29T00:13:30.610207002Z,200,759.552,canary-7d9c85fc95-m6r2s,
+2026-09-29T00:13:30.860206839Z,200,616.894,canary-7d9c85fc95-m6r2s,
+2026-09-29T00:13:31.110207434Z,200,751.809,canary-7d9c85fc95-m6r2s,
+2026-09-29T00:13:31.360210445Z,200,614.296,canary-7d9c85fc95-m6r2s,
+2026-09-29T00:13:31.610209895Z,200,553.447,canary-7d9c85fc95-m6r2s,
+2026-09-29T00:13:31.860210035Z,200,413.920,canary-7d9c85fc95-m6r2s,
+2026-09-29T00:13:32.110207313Z,200,375.900,canary-7d9c85fc95-m6r2s,
+2026-09-29T00:13:32.360206834Z,200,313.450,canary-7d9c85fc95-m6r2s,
+2026-09-29T00:13:32.610206944Z,200,269.187,canary-7d9c85fc95-m6r2s,
+2026-09-29T00:13:32.860206962Z,200,231.737,canary-7d9c85fc95-m6r2s,
+2026-09-29T00:13:33.110207676Z,200,191.660,canary-7d9c85fc95-m6r2s,
+2026-09-29T00:13:33.360206963Z,200,203.877,canary-7d9c85fc95-m6r2s,
+2026-09-29T00:13:33.610208464Z,200,167.447,canary-7d9c85fc95-m6r2s,
+2026-09-29T00:13:33.860206842Z,200,207.664,canary-7d9c85fc95-m6r2s,
+2026-09-29T00:13:34.110206837Z,200,167.366,canary-7d9c85fc95-m6r2s,
+2026-09-29T00:13:34.360206792Z,200,207.309,canary-7d9c85fc95-m6r2s,
+2026-09-29T00:13:34.610206673Z,200,165.578,canary-7d9c85fc95-m6r2s,
+2026-09-29T00:13:34.860206706Z,200,207.439,canary-7d9c85fc95-m6r2s,
+2026-09-29T00:13:35.110206729Z,200,167.420,canary-7d9c85fc95-m6r2s,
+2026-09-29T00:13:35.360206686Z,200,207.180,canary-7d9c85fc95-m6r2s,
+2026-09-29T00:13:35.610206677Z,200,165.831,canary-7d9c85fc95-m6r2s,
+2026-09-29T00:13:35.86020661Z,200,207.509,canary-7d9c85fc95-m6r2s,
+2026-09-29T00:13:36.110206941Z,200,167.462,canary-7d9c85fc95-m6r2s,
+2026-09-29T00:13:36.360206697Z,200,207.355,canary-7d9c85fc95-m6r2s,
+2026-09-29T00:13:36.610206753Z,200,167.695,canary-7d9c85fc95-m6r2s,
+2026-09-29T00:13:36.860207169Z,200,207.497,canary-7d9c85fc95-m6r2s,
+2026-09-29T00:13:37.110206625Z,200,167.479,canary-7d9c85fc95-m6r2s,
+2026-09-29T00:13:37.360206745Z,200,206.105,canary-7d9c85fc95-m6r2s,
+2026-09-29T00:13:37.610206837Z,200,167.435,canary-7d9c85fc95-m6r2s,
+2026-09-29T00:13:37.860206717Z,200,207.959,canary-7d9c85fc95-m6r2s,
+2026-09-29T00:13:38.110206731Z,200,167.794,canary-7d9c85fc95-m6r2s,
+2026-09-29T00:13:38.360206992Z,200,204.555,canary-7d9c85fc95-m6r2s,
+2026-09-29T00:13:38.61020679Z,200,167.215,canary-7d9c85fc95-m6r2s,
+2026-09-29T00:13:38.860206893Z,200,207.485,canary-7d9c85fc95-m6r2s,
+2026-09-29T00:13:39.110206931Z,200,167.272,canary-7d9c85fc95-m6r2s,
+2026-09-29T00:13:39.360206651Z,200,207.398,canary-7d9c85fc95-m6r2s,
+2026-09-29T00:13:39.610206768Z,200,167.484,canary-7d9c85fc95-m6r2s,
+2026-09-29T00:13:39.860206893Z,200,207.545,canary-7d9c85fc95-m6r2s,
+2026-09-29T00:13:40.110207619Z,200,165.672,canary-7d9c85fc95-m6r2s,
+2026-09-29T00:13:40.360206847Z,200,207.186,canary-7d9c85fc95-m6r2s,
+2026-09-29T00:13:40.610206796Z,200,167.265,canary-7d9c85fc95-m6r2s,
+2026-09-29T00:13:40.86020673Z,200,203.455,canary-7d9c85fc95-m6r2s,
+2026-09-29T00:13:41.110206852Z,200,165.816,canary-7d9c85fc95-m6r2s,
+2026-09-29T00:13:41.360206655Z,200,218.540,canary-7d9c85fc95-m6r2s,
+2026-09-29T00:13:41.610206476Z,200,175.692,canary-7d9c85fc95-m6r2s,
+2026-09-29T00:13:41.860206917Z,200,207.542,canary-7d9c85fc95-m6r2s,
+2026-09-29T00:13:42.110207032Z,200,552.408,canary-7d9c85fc95-m6r2s,
+2026-09-29T00:13:42.360207005Z,200,1025.637,canary-7d9c85fc95-m6r2s,
+2026-09-29T00:13:42.610209305Z,200,1870.760,canary-7d9c85fc95-m6r2s,
+2026-09-29T00:13:42.860207755Z,200,3009.806,canary-7d9c85fc95-m6r2s,
+2026-09-29T00:13:43.11020697Z,200,2850.751,canary-7d9c85fc95-m6r2s,
+2026-09-29T00:13:43.360208539Z,200,3116.310,canary-7d9c85fc95-m6r2s,
+2026-09-29T00:13:43.860207735Z,200,3622.188,canary-7d9c85fc95-m6r2s,
+2026-09-29T00:13:43.610207723Z,200,4469.683,canary-7d9c85fc95-m6r2s,
+2026-09-29T00:13:44.110207084Z,0,5000.189,,"Get ""http://10.60.0.110:30080/work?iterations=300000"": context deadline exceeded (Client.Timeout exceeded while awaiting headers)"
+2026-09-29T00:13:44.360207836Z,0,5000.110,,"Get ""http://10.60.0.110:30080/work?iterations=300000"": context deadline exceeded (Client.Timeout exceeded while awaiting headers)"
+2026-09-29T00:13:44.610206634Z,0,5000.985,,"Get ""http://10.60.0.110:30080/work?iterations=300000"": context deadline exceeded (Client.Timeout exceeded while awaiting headers)"
+2026-09-29T00:13:44.860206634Z,0,5001.023,,"Get ""http://10.60.0.110:30080/work?iterations=300000"": context deadline exceeded (Client.Timeout exceeded while awaiting headers)"
+2026-09-29T00:13:45.110209077Z,0,5000.849,,"Get ""http://10.60.0.110:30080/work?iterations=300000"": context deadline exceeded (Client.Timeout exceeded while awaiting headers)"
+2026-09-29T00:13:45.36020663Z,0,5001.077,,"Get ""http://10.60.0.110:30080/work?iterations=300000"": context deadline exceeded (Client.Timeout exceeded while awaiting headers)"
+2026-09-29T00:13:45.610208406Z,200,4867.750,canary-7d9c85fc95-m6r2s,
+2026-09-29T00:13:46.3602067Z,200,4219.246,canary-7d9c85fc95-m6r2s,
+2026-09-29T00:13:45.860206686Z,0,5000.198,,"Get ""http://10.60.0.110:30080/work?iterations=300000"": context deadline exceeded (Client.Timeout exceeded while awaiting headers)"
+2026-09-29T00:13:46.110207941Z,200,4858.338,canary-7d9c85fc95-m6r2s,
+2026-09-29T00:13:46.610206545Z,0,5000.397,,"Get ""http://10.60.0.110:30080/work?iterations=300000"": context deadline exceeded (Client.Timeout exceeded while awaiting headers)"
+2026-09-29T00:13:46.86020975Z,0,5000.730,,"Get ""http://10.60.0.110:30080/work?iterations=300000"": context deadline exceeded (Client.Timeout exceeded while awaiting headers)"
+2026-09-29T00:13:47.110206753Z,0,5000.137,,"Get ""http://10.60.0.110:30080/work?iterations=300000"": context deadline exceeded (Client.Timeout exceeded while awaiting headers)"
+2026-09-29T00:13:47.360207613Z,0,5000.089,,"Get ""http://10.60.0.110:30080/work?iterations=300000"": context deadline exceeded (Client.Timeout exceeded while awaiting headers)"
+2026-09-29T00:13:47.610208782Z,0,5000.809,,"Get ""http://10.60.0.110:30080/work?iterations=300000"": context deadline exceeded (Client.Timeout exceeded while awaiting headers)"
+2026-09-29T00:13:47.860206515Z,0,5000.144,,"Get ""http://10.60.0.110:30080/work?iterations=300000"": context deadline exceeded (Client.Timeout exceeded while awaiting headers)"
+2026-09-29T00:13:48.110206887Z,0,5000.121,,"Get ""http://10.60.0.110:30080/work?iterations=300000"": context deadline exceeded (Client.Timeout exceeded while awaiting headers)"
+2026-09-29T00:13:48.610208369Z,200,4663.999,canary-7d9c85fc95-m6r2s,
+2026-09-29T00:13:48.360206517Z,0,5000.151,,"Get ""http://10.60.0.110:30080/work?iterations=300000"": context deadline exceeded (Client.Timeout exceeded while awaiting headers)"
+2026-09-29T00:13:48.860209092Z,0,5000.283,,"Get ""http://10.60.0.110:30080/work?iterations=300000"": context deadline exceeded (Client.Timeout exceeded while awaiting headers)"
+2026-09-29T00:13:49.110206884Z,0,5000.095,,"Get ""http://10.60.0.110:30080/work?iterations=300000"": context deadline exceeded (Client.Timeout exceeded while awaiting headers)"
+2026-09-29T00:13:49.360206726Z,0,5000.306,,"Get ""http://10.60.0.110:30080/work?iterations=300000"": context deadline exceeded (Client.Timeout exceeded while awaiting headers)"
+2026-09-29T00:13:49.86020885Z,200,4704.588,canary-7d9c85fc95-m6r2s,
+2026-09-29T00:13:49.610206653Z,0,5000.550,,"Get ""http://10.60.0.110:30080/work?iterations=300000"": context deadline exceeded (Client.Timeout exceeded while awaiting headers)"
+2026-09-29T00:13:50.110206897Z,200,4875.763,canary-7d9c85fc95-m6r2s,
+2026-09-29T00:13:50.360206856Z,0,5000.359,,"Get ""http://10.60.0.110:30080/work?iterations=300000"": context deadline exceeded (Client.Timeout exceeded while awaiting headers)"
+2026-09-29T00:13:51.360211392Z,200,4007.795,canary-7d9c85fc95-m6r2s,
+2026-09-29T00:13:51.610210679Z,200,3955.347,canary-7d9c85fc95-m6r2s,
+2026-09-29T00:13:50.610206875Z,0,5000.160,,"Get ""http://10.60.0.110:30080/work?iterations=300000"": context deadline exceeded (Client.Timeout exceeded while awaiting headers)"
+2026-09-29T00:13:51.110207589Z,200,4562.122,canary-7d9c85fc95-m6r2s,
+2026-09-29T00:13:50.860207585Z,0,5000.609,,"Get ""http://10.60.0.110:30080/work?iterations=300000"": context deadline exceeded (Client.Timeout exceeded while awaiting headers)"
+2026-09-29T00:13:52.360206882Z,200,3516.137,canary-7d9c85fc95-m6r2s,
+2026-09-29T00:13:51.860207337Z,0,5000.124,,"Get ""http://10.60.0.110:30080/work?iterations=300000"": context deadline exceeded (Client.Timeout exceeded while awaiting headers)"
+2026-09-29T00:13:52.110207704Z,200,4854.986,canary-7d9c85fc95-m6r2s,
+2026-09-29T00:13:53.360209206Z,200,4014.654,canary-7d9c85fc95-m6r2s,
+2026-09-29T00:13:52.610206793Z,0,5001.081,,"Get ""http://10.60.0.110:30080/work?iterations=300000"": context deadline exceeded (Client.Timeout exceeded while awaiting headers)"
+2026-09-29T00:13:53.610209821Z,200,4167.783,canary-7d9c85fc95-m6r2s,
+2026-09-29T00:13:52.860207297Z,0,5000.774,,"Get ""http://10.60.0.110:30080/work?iterations=300000"": context deadline exceeded (Client.Timeout exceeded while awaiting headers)"
+2026-09-29T00:13:53.110207139Z,200,4876.024,canary-7d9c85fc95-m6r2s,
+2026-09-29T00:13:55.360209305Z,200,3117.183,canary-7d9c85fc95-m6r2s,
+2026-09-29T00:13:54.860207554Z,200,3905.774,canary-7d9c85fc95-m6r2s,
+2026-09-29T00:13:53.860207093Z,0,5000.086,,"Get ""http://10.60.0.110:30080/work?iterations=300000"": context deadline exceeded (Client.Timeout exceeded while awaiting headers)"
+2026-09-29T00:13:55.110209427Z,200,3854.536,canary-7d9c85fc95-m6r2s,
+2026-09-29T00:13:54.110207454Z,200,4855.875,canary-7d9c85fc95-m6r2s,
+2026-09-29T00:13:54.610209214Z,200,4356.179,canary-7d9c85fc95-m6r2s,
+2026-09-29T00:13:54.36020693Z,200,4615.109,canary-7d9c85fc95-m6r2s,
+2026-09-29T00:13:57.110210217Z,200,3060.014,canary-7d9c85fc95-m6r2s,
+2026-09-29T00:13:55.610206933Z,200,4660.423,canary-7d9c85fc95-m6r2s,
+2026-09-29T00:13:56.360206956Z,200,4016.002,canary-7d9c85fc95-m6r2s,
+2026-09-29T00:13:55.860207128Z,200,4521.314,canary-7d9c85fc95-m6r2s,
+2026-09-29T00:13:56.860207283Z,200,4007.210,canary-7d9c85fc95-m6r2s,
+2026-09-29T00:13:56.110207401Z,200,4862.718,canary-7d9c85fc95-m6r2s,
+2026-09-29T00:13:58.110210257Z,200,2876.438,canary-7d9c85fc95-m6r2s,
+2026-09-29T00:13:56.610207592Z,200,4763.832,canary-7d9c85fc95-m6r2s,
+2026-09-29T00:13:57.610209562Z,200,4464.355,canary-7d9c85fc95-m6r2s,
+2026-09-29T00:13:57.36020687Z,200,4803.756,canary-7d9c85fc95-m6r2s,
+2026-09-29T00:13:57.860209336Z,200,4503.104,canary-7d9c85fc95-m6r2s,
+2026-09-29T00:13:59.110207156Z,200,3974.598,canary-7d9c85fc95-m6r2s,
+2026-09-29T00:13:58.360206965Z,0,5001.001,,"Get ""http://10.60.0.110:30080/work?iterations=300000"": context deadline exceeded (Client.Timeout exceeded while awaiting headers)"
+2026-09-29T00:13:58.61020961Z,0,5000.091,,"Get ""http://10.60.0.110:30080/work?iterations=300000"": context deadline exceeded (Client.Timeout exceeded while awaiting headers)"
+2026-09-29T00:14:00.110208118Z,200,3655.399,canary-7d9c85fc95-m6r2s,
+2026-09-29T00:13:58.860209117Z,200,4925.460,canary-7d9c85fc95-m6r2s,
+2026-09-29T00:13:59.610207677Z,200,4360.374,canary-7d9c85fc95-m6r2s,
+2026-09-29T00:13:59.360207074Z,200,4707.518,canary-7d9c85fc95-m6r2s,
+2026-09-29T00:14:00.360207587Z,200,4026.397,canary-7d9c85fc95-m6r2s,
+2026-09-29T00:13:59.860207151Z,0,5000.369,,"Get ""http://10.60.0.110:30080/work?iterations=300000"": context deadline exceeded (Client.Timeout exceeded while awaiting headers)"
+2026-09-29T00:14:02.110206773Z,200,3368.742,canary-7d9c85fc95-m6r2s,
+2026-09-29T00:14:00.610208325Z,0,5000.384,,"Get ""http://10.60.0.110:30080/work?iterations=300000"": context deadline exceeded (Client.Timeout exceeded while awaiting headers)"
+2026-09-29T00:14:00.860211293Z,0,5000.217,,"Get ""http://10.60.0.110:30080/work?iterations=300000"": context deadline exceeded (Client.Timeout exceeded while awaiting headers)"
+2026-09-29T00:14:01.110207091Z,0,5000.445,,"Get ""http://10.60.0.110:30080/work?iterations=300000"": context deadline exceeded (Client.Timeout exceeded while awaiting headers)"
+2026-09-29T00:14:01.36020707Z,0,5000.208,,"Get ""http://10.60.0.110:30080/work?iterations=300000"": context deadline exceeded (Client.Timeout exceeded while awaiting headers)"
+2026-09-29T00:14:01.610211039Z,0,5000.296,,"Get ""http://10.60.0.110:30080/work?iterations=300000"": context deadline exceeded (Client.Timeout exceeded while awaiting headers)"
+2026-09-29T00:14:01.860206714Z,0,5000.175,,"Get ""http://10.60.0.110:30080/work?iterations=300000"": context deadline exceeded (Client.Timeout exceeded while awaiting headers)"
+2026-09-29T00:14:02.610206939Z,200,4454.358,canary-7d9c85fc95-m6r2s,
+2026-09-29T00:14:02.360207793Z,0,5000.422,,"Get ""http://10.60.0.110:30080/work?iterations=300000"": context deadline exceeded (Client.Timeout exceeded while awaiting headers)"
+2026-09-29T00:14:02.86020856Z,0,5000.805,,"Get ""http://10.60.0.110:30080/work?iterations=300000"": context deadline exceeded (Client.Timeout exceeded while awaiting headers)"
+2026-09-29T00:14:03.110206603Z,200,4767.052,canary-7d9c85fc95-m6r2s,
+2026-09-29T00:14:03.360207656Z,0,5000.754,,"Get ""http://10.60.0.110:30080/work?iterations=300000"": context deadline exceeded (Client.Timeout exceeded while awaiting headers)"
+2026-09-29T00:14:03.610208675Z,0,5000.674,,"Get ""http://10.60.0.110:30080/work?iterations=300000"": context deadline exceeded (Client.Timeout exceeded while awaiting headers)"
+2026-09-29T00:14:03.860207718Z,0,5000.047,,"Get ""http://10.60.0.110:30080/work?iterations=300000"": context deadline exceeded (Client.Timeout exceeded while awaiting headers)"
+2026-09-29T00:14:04.110206777Z,0,5000.145,,"Get ""http://10.60.0.110:30080/work?iterations=300000"": context deadline exceeded (Client.Timeout exceeded while awaiting headers)"
+2026-09-29T00:14:04.360208543Z,0,5000.251,,"Get ""http://10.60.0.110:30080/work?iterations=300000"": context deadline exceeded (Client.Timeout exceeded while awaiting headers)"
+2026-09-29T00:14:04.610209057Z,0,5000.107,,"Get ""http://10.60.0.110:30080/work?iterations=300000"": context deadline exceeded (Client.Timeout exceeded while awaiting headers)"
+2026-09-29T00:14:04.860206858Z,0,5000.099,,"Get ""http://10.60.0.110:30080/work?iterations=300000"": context deadline exceeded (Client.Timeout exceeded while awaiting headers)"
+2026-09-29T00:14:05.110206619Z,200,4962.557,canary-7d9c85fc95-m6r2s,
+2026-09-29T00:14:05.360207673Z,0,5001.070,,"Get ""http://10.60.0.110:30080/work?iterations=300000"": context deadline exceeded (Client.Timeout exceeded while awaiting headers)"
+2026-09-29T00:14:05.61020789Z,0,5000.271,,"Get ""http://10.60.0.110:30080/work?iterations=300000"": context deadline exceeded (Client.Timeout exceeded while awaiting headers)"
+2026-09-29T00:14:05.860206633Z,0,5000.178,,"Get ""http://10.60.0.110:30080/work?iterations=300000"": context deadline exceeded (Client.Timeout exceeded while awaiting headers)"
+2026-09-29T00:14:06.110210024Z,0,5000.145,,"Get ""http://10.60.0.110:30080/work?iterations=300000"": context deadline exceeded (Client.Timeout exceeded while awaiting headers)"
+2026-09-29T00:14:06.36020684Z,0,5000.096,,"Get ""http://10.60.0.110:30080/work?iterations=300000"": context deadline exceeded (Client.Timeout exceeded while awaiting headers)"
+2026-09-29T00:14:06.610206536Z,0,5000.111,,"Get ""http://10.60.0.110:30080/work?iterations=300000"": context deadline exceeded (Client.Timeout exceeded while awaiting headers)"
+2026-09-29T00:14:06.860206932Z,0,5000.560,,"Get ""http://10.60.0.110:30080/work?iterations=300000"": context deadline exceeded (Client.Timeout exceeded while awaiting headers)"
+2026-09-29T00:14:07.110206778Z,0,5000.818,,"Get ""http://10.60.0.110:30080/work?iterations=300000"": context deadline exceeded (Client.Timeout exceeded while awaiting headers)"
+2026-09-29T00:14:07.36020666Z,0,5000.092,,"Get ""http://10.60.0.110:30080/work?iterations=300000"": context deadline exceeded (Client.Timeout exceeded while awaiting headers)"
+2026-09-29T00:14:07.610206635Z,0,5000.068,,"Get ""http://10.60.0.110:30080/work?iterations=300000"": context deadline exceeded (Client.Timeout exceeded while awaiting headers)"
+2026-09-29T00:14:07.860206636Z,0,5000.120,,"Get ""http://10.60.0.110:30080/work?iterations=300000"": context deadline exceeded (Client.Timeout exceeded while awaiting headers)"
+2026-09-29T00:14:08.110208049Z,0,5000.052,,"Get ""http://10.60.0.110:30080/work?iterations=300000"": context deadline exceeded (Client.Timeout exceeded while awaiting headers)"
+2026-09-29T00:14:08.36020851Z,0,5001.085,,"Get ""http://10.60.0.110:30080/work?iterations=300000"": context deadline exceeded (Client.Timeout exceeded while awaiting headers)"
+2026-09-29T00:14:08.610206576Z,0,5000.048,,"Get ""http://10.60.0.110:30080/work?iterations=300000"": context deadline exceeded (Client.Timeout exceeded while awaiting headers)"
+2026-09-29T00:14:08.860208941Z,0,5000.080,,"Get ""http://10.60.0.110:30080/work?iterations=300000"": context deadline exceeded (Client.Timeout exceeded while awaiting headers)"
+2026-09-29T00:14:09.110206736Z,0,5000.083,,"Get ""http://10.60.0.110:30080/work?iterations=300000"": context deadline exceeded (Client.Timeout exceeded while awaiting headers)"
+2026-09-29T00:14:09.360209544Z,0,5000.163,,"Get ""http://10.60.0.110:30080/work?iterations=300000"": context deadline exceeded (Client.Timeout exceeded while awaiting headers)"
+2026-09-29T00:14:09.610206487Z,0,5000.111,,"Get ""http://10.60.0.110:30080/work?iterations=300000"": context deadline exceeded (Client.Timeout exceeded while awaiting headers)"
+2026-09-29T00:14:09.860207117Z,0,5000.071,,"Get ""http://10.60.0.110:30080/work?iterations=300000"": context deadline exceeded (Client.Timeout exceeded while awaiting headers)"
+2026-09-29T00:14:10.110207878Z,0,5000.524,,"Get ""http://10.60.0.110:30080/work?iterations=300000"": context deadline exceeded (Client.Timeout exceeded while awaiting headers)"
+2026-09-29T00:14:10.360207327Z,0,5000.581,,"Get ""http://10.60.0.110:30080/work?iterations=300000"": context deadline exceeded (Client.Timeout exceeded while awaiting headers)"
+2026-09-29T00:14:10.610207741Z,0,5000.702,,"Get ""http://10.60.0.110:30080/work?iterations=300000"": context deadline exceeded (Client.Timeout exceeded while awaiting headers)"
+2026-09-29T00:14:10.860207373Z,0,5000.116,,"Get ""http://10.60.0.110:30080/work?iterations=300000"": context deadline exceeded (Client.Timeout exceeded while awaiting headers)"
+2026-09-29T00:14:11.11020747Z,0,5000.220,,"Get ""http://10.60.0.110:30080/work?iterations=300000"": context deadline exceeded (Client.Timeout exceeded while awaiting headers)"
+2026-09-29T00:14:11.360207155Z,0,5000.221,,"Get ""http://10.60.0.110:30080/work?iterations=300000"": context deadline exceeded (Client.Timeout exceeded while awaiting headers)"
+2026-09-29T00:14:11.610208552Z,0,5000.120,,"Get ""http://10.60.0.110:30080/work?iterations=300000"": context deadline exceeded (Client.Timeout exceeded while awaiting headers)"
+2026-09-29T00:14:11.860210366Z,0,5001.055,,"Get ""http://10.60.0.110:30080/work?iterations=300000"": context deadline exceeded (Client.Timeout exceeded while awaiting headers)"
+2026-09-29T00:14:12.110208404Z,0,5000.081,,"Get ""http://10.60.0.110:30080/work?iterations=300000"": context deadline exceeded (Client.Timeout exceeded while awaiting headers)"
+2026-09-29T00:14:12.360207822Z,0,5000.190,,"Get ""http://10.60.0.110:30080/work?iterations=300000"": context deadline exceeded (Client.Timeout exceeded while awaiting headers)"
+2026-09-29T00:14:12.610208693Z,0,5000.061,,"Get ""http://10.60.0.110:30080/work?iterations=300000"": context deadline exceeded (Client.Timeout exceeded while awaiting headers)"
+2026-09-29T00:14:12.860206742Z,0,5000.116,,"Get ""http://10.60.0.110:30080/work?iterations=300000"": context deadline exceeded (Client.Timeout exceeded while awaiting headers)"
+2026-09-29T00:14:13.110207751Z,0,5000.135,,"Get ""http://10.60.0.110:30080/work?iterations=300000"": context deadline exceeded (Client.Timeout exceeded while awaiting headers)"
+2026-09-29T00:14:13.360206815Z,0,5000.094,,"Get ""http://10.60.0.110:30080/work?iterations=300000"": context deadline exceeded (Client.Timeout exceeded while awaiting headers)"
+2026-09-29T00:14:13.61020659Z,0,5000.068,,"Get ""http://10.60.0.110:30080/work?iterations=300000"": context deadline exceeded (Client.Timeout exceeded while awaiting headers)"
+2026-09-29T00:14:13.860208465Z,0,5000.135,,"Get ""http://10.60.0.110:30080/work?iterations=300000"": context deadline exceeded (Client.Timeout exceeded while awaiting headers)"
+2026-09-29T00:14:14.110208227Z,0,5000.217,,"Get ""http://10.60.0.110:30080/work?iterations=300000"": context deadline exceeded (Client.Timeout exceeded while awaiting headers)"
+2026-09-29T00:14:14.360208961Z,0,5000.146,,"Get ""http://10.60.0.110:30080/work?iterations=300000"": context deadline exceeded (Client.Timeout exceeded while awaiting headers)"
+2026-09-29T00:14:14.61020929Z,0,5000.063,,"Get ""http://10.60.0.110:30080/work?iterations=300000"": context deadline exceeded (Client.Timeout exceeded while awaiting headers)"
+2026-09-29T00:14:14.860206624Z,0,5000.106,,"Get ""http://10.60.0.110:30080/work?iterations=300000"": context deadline exceeded (Client.Timeout exceeded while awaiting headers)"
+2026-09-29T00:14:15.110206726Z,0,5000.078,,"Get ""http://10.60.0.110:30080/work?iterations=300000"": context deadline exceeded (Client.Timeout exceeded while awaiting headers)"
+2026-09-29T00:14:20.11020817Z,0,0.194,,"Get ""http://10.60.0.110:30080/work?iterations=300000"": dial tcp 10.60.0.110:30080: connect: connection refused"
+2026-09-29T00:14:15.360206708Z,0,5000.097,,"Get ""http://10.60.0.110:30080/work?iterations=300000"": context deadline exceeded (Client.Timeout exceeded while awaiting headers)"
+2026-09-29T00:14:20.360206661Z,0,0.245,,"Get ""http://10.60.0.110:30080/work?iterations=300000"": dial tcp 10.60.0.110:30080: connect: connection refused"
+2026-09-29T00:14:15.610208961Z,0,5000.088,,"Get ""http://10.60.0.110:30080/work?iterations=300000"": context deadline exceeded (Client.Timeout exceeded while awaiting headers)"
+2026-09-29T00:14:20.610207112Z,0,0.233,,"Get ""http://10.60.0.110:30080/work?iterations=300000"": dial tcp 10.60.0.110:30080: connect: connection refused"
+2026-09-29T00:14:20.860209449Z,0,0.282,,"Get ""http://10.60.0.110:30080/work?iterations=300000"": dial tcp 10.60.0.110:30080: connect: connection refused"
+2026-09-29T00:14:15.860207317Z,0,5000.125,,"Get ""http://10.60.0.110:30080/work?iterations=300000"": context deadline exceeded (Client.Timeout exceeded while awaiting headers)"
+2026-09-29T00:14:21.110210586Z,0,0.308,,"Get ""http://10.60.0.110:30080/work?iterations=300000"": dial tcp 10.60.0.110:30080: connect: connection refused"
+2026-09-29T00:14:16.110209148Z,0,5000.263,,"Get ""http://10.60.0.110:30080/work?iterations=300000"": context deadline exceeded (Client.Timeout exceeded while awaiting headers)"
+2026-09-29T00:14:16.360208008Z,0,5000.128,,"Get ""http://10.60.0.110:30080/work?iterations=300000"": context deadline exceeded (Client.Timeout exceeded while awaiting headers)"
+2026-09-29T00:14:21.360211644Z,0,0.428,,"Get ""http://10.60.0.110:30080/work?iterations=300000"": dial tcp 10.60.0.110:30080: connect: connection refused"
+2026-09-29T00:14:16.610206618Z,0,5000.182,,"Get ""http://10.60.0.110:30080/work?iterations=300000"": context deadline exceeded (Client.Timeout exceeded while awaiting headers)"
+2026-09-29T00:14:16.860206778Z,0,5000.592,,"Get ""http://10.60.0.110:30080/work?iterations=300000"": context deadline exceeded (Client.Timeout exceeded while awaiting headers)"
+2026-09-29T00:14:17.110208332Z,0,5000.509,,"Get ""http://10.60.0.110:30080/work?iterations=300000"": context deadline exceeded (Client.Timeout exceeded while awaiting headers)"
+2026-09-29T00:14:17.360207556Z,0,5000.380,,"Get ""http://10.60.0.110:30080/work?iterations=300000"": context deadline exceeded (Client.Timeout exceeded while awaiting headers)"
+2026-09-29T00:14:17.610206816Z,0,5000.302,,"Get ""http://10.60.0.110:30080/work?iterations=300000"": context deadline exceeded (Client.Timeout exceeded while awaiting headers)"
+2026-09-29T00:14:17.860208347Z,0,5000.261,,"Get ""http://10.60.0.110:30080/work?iterations=300000"": context deadline exceeded (Client.Timeout exceeded while awaiting headers)"
+2026-09-29T00:14:18.110208227Z,0,5000.152,,"Get ""http://10.60.0.110:30080/work?iterations=300000"": context deadline exceeded (Client.Timeout exceeded while awaiting headers)"
+2026-09-29T00:14:18.360208308Z,0,5000.363,,"Get ""http://10.60.0.110:30080/work?iterations=300000"": context deadline exceeded (Client.Timeout exceeded while awaiting headers)"
+2026-09-29T00:14:18.610207603Z,0,5000.111,,"Get ""http://10.60.0.110:30080/work?iterations=300000"": context deadline exceeded (Client.Timeout exceeded while awaiting headers)"
+2026-09-29T00:14:18.860207073Z,0,5000.213,,"Get ""http://10.60.0.110:30080/work?iterations=300000"": context deadline exceeded (Client.Timeout exceeded while awaiting headers)"
+2026-09-29T00:14:19.110206717Z,0,5000.186,,"Get ""http://10.60.0.110:30080/work?iterations=300000"": context deadline exceeded (Client.Timeout exceeded while awaiting headers)"
+2026-09-29T00:14:19.360206646Z,0,5000.073,,"Get ""http://10.60.0.110:30080/work?iterations=300000"": context deadline exceeded (Client.Timeout exceeded while awaiting headers)"
+2026-09-29T00:14:19.610207777Z,0,5000.119,,"Get ""http://10.60.0.110:30080/work?iterations=300000"": context deadline exceeded (Client.Timeout exceeded while awaiting headers)"
+2026-09-29T00:14:24.610207205Z,0,0.269,,"Get ""http://10.60.0.110:30080/work?iterations=300000"": dial tcp 10.60.0.110:30080: connect: connection refused"
+2026-09-29T00:14:19.860207856Z,0,5000.108,,"Get ""http://10.60.0.110:30080/work?iterations=300000"": context deadline exceeded (Client.Timeout exceeded while awaiting headers)"
+2026-09-29T00:14:24.860209278Z,0,0.268,,"Get ""http://10.60.0.110:30080/work?iterations=300000"": dial tcp 10.60.0.110:30080: connect: connection refused"
+2026-09-29T00:14:25.110208275Z,0,0.242,,"Get ""http://10.60.0.110:30080/work?iterations=300000"": dial tcp 10.60.0.110:30080: connect: connection refused"
+2026-09-29T00:14:25.360208593Z,0,0.249,,"Get ""http://10.60.0.110:30080/work?iterations=300000"": dial tcp 10.60.0.110:30080: connect: connection refused"
+2026-09-29T00:14:21.610207149Z,0,5000.102,,"Get ""http://10.60.0.110:30080/work?iterations=300000"": context deadline exceeded (Client.Timeout exceeded while awaiting headers)"
+2026-09-29T00:14:21.860207113Z,0,5000.200,,"Get ""http://10.60.0.110:30080/work?iterations=300000"": context deadline exceeded (Client.Timeout exceeded while awaiting headers)"
+2026-09-29T00:14:22.11020756Z,0,5001.044,,"Get ""http://10.60.0.110:30080/work?iterations=300000"": context deadline exceeded (Client.Timeout exceeded while awaiting headers)"
+2026-09-29T00:14:22.3602068Z,0,5001.038,,"Get ""http://10.60.0.110:30080/work?iterations=300000"": context deadline exceeded (Client.Timeout exceeded while awaiting headers)"
+2026-09-29T00:14:22.610210148Z,0,5000.072,,"Get ""http://10.60.0.110:30080/work?iterations=300000"": context deadline exceeded (Client.Timeout exceeded while awaiting headers)"
+2026-09-29T00:14:22.860206737Z,0,5000.160,,"Get ""http://10.60.0.110:30080/work?iterations=300000"": context deadline exceeded (Client.Timeout exceeded while awaiting headers)"
+2026-09-29T00:14:23.11020672Z,0,5000.091,,"Get ""http://10.60.0.110:30080/work?iterations=300000"": context deadline exceeded (Client.Timeout exceeded while awaiting headers)"
+2026-09-29T00:14:23.360209021Z,0,5000.078,,"Get ""http://10.60.0.110:30080/work?iterations=300000"": context deadline exceeded (Client.Timeout exceeded while awaiting headers)"
+2026-09-29T00:14:28.360207561Z,0,0.243,,"Get ""http://10.60.0.110:30080/work?iterations=300000"": dial tcp 10.60.0.110:30080: connect: connection refused"
+2026-09-29T00:14:28.610208035Z,0,0.227,,"Get ""http://10.60.0.110:30080/work?iterations=300000"": dial tcp 10.60.0.110:30080: connect: connection refused"
+2026-09-29T00:14:23.610209006Z,0,5000.127,,"Get ""http://10.60.0.110:30080/work?iterations=300000"": context deadline exceeded (Client.Timeout exceeded while awaiting headers)"
+2026-09-29T00:14:28.860208819Z,0,0.233,,"Get ""http://10.60.0.110:30080/work?iterations=300000"": dial tcp 10.60.0.110:30080: connect: connection refused"
+2026-09-29T00:14:23.86020661Z,0,5000.143,,"Get ""http://10.60.0.110:30080/work?iterations=300000"": context deadline exceeded (Client.Timeout exceeded while awaiting headers)"
+2026-09-29T00:14:24.110208154Z,0,5001.121,,"Get ""http://10.60.0.110:30080/work?iterations=300000"": context deadline exceeded (Client.Timeout exceeded while awaiting headers)"
+2026-09-29T00:14:24.36020679Z,0,5000.168,,"Get ""http://10.60.0.110:30080/work?iterations=300000"": context deadline exceeded (Client.Timeout exceeded while awaiting headers)"
+2026-09-29T00:14:25.610206797Z,0,5000.745,,"Get ""http://10.60.0.110:30080/work?iterations=300000"": context deadline exceeded (Client.Timeout exceeded while awaiting headers)"
+2026-09-29T00:14:25.860206984Z,0,5000.466,,"Get ""http://10.60.0.110:30080/work?iterations=300000"": context deadline exceeded (Client.Timeout exceeded while awaiting headers)"
+2026-09-29T00:14:26.11020713Z,0,5000.165,,"Get ""http://10.60.0.110:30080/work?iterations=300000"": context deadline exceeded (Client.Timeout exceeded while awaiting headers)"
+2026-09-29T00:14:26.360209128Z,0,5000.861,,"Get ""http://10.60.0.110:30080/work?iterations=300000"": context deadline exceeded (Client.Timeout exceeded while awaiting headers)"
+2026-09-29T00:14:26.610210129Z,0,5000.662,,"Get ""http://10.60.0.110:30080/work?iterations=300000"": context deadline exceeded (Client.Timeout exceeded while awaiting headers)"
+2026-09-29T00:14:26.860207235Z,200,4904.523,canary-7d9c85fc95-m6r2s,
+2026-09-29T00:14:27.110208009Z,0,5000.224,,"Get ""http://10.60.0.110:30080/work?iterations=300000"": context deadline exceeded (Client.Timeout exceeded while awaiting headers)"
+2026-09-29T00:14:27.360208819Z,0,5000.905,,"Get ""http://10.60.0.110:30080/work?iterations=300000"": context deadline exceeded (Client.Timeout exceeded while awaiting headers)"
+2026-09-29T00:14:27.860206782Z,200,4514.463,canary-7d9c85fc95-m6r2s,
+2026-09-29T00:14:27.610209903Z,200,4871.827,canary-7d9c85fc95-m6r2s,
+2026-09-29T00:14:28.110207214Z,200,4462.795,canary-7d9c85fc95-m6r2s,

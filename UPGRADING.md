@@ -1,22 +1,20 @@
-# Upgrading
+# Upgrade and migration notes
 
-PodHandoff has no stable release to upgrade from yet. Its initial API is a
-deliberate break from the imported Understudy baseline:
+PodHandoff is an educational prerelease with no stable upgrade path. Its API is
+separate from the imported Understudy baseline:
 
 - API group: `apps.podhandoff.io`
 - kind: `PodHandoff`
 - Helm chart and Kubernetes names: `podhandoff`
 - metrics prefix: `podhandoff_`
 
-Do not apply the PodHandoff CRD over an Understudy installation. Remove the old
-resources through their owning GitOps change, verify that no old eviction
-webhook remains, and install PodHandoff as a separate pilot. See
-[UPSTREAM.md](UPSTREAM.md) for the imported baseline and divergence record.
+Do not apply the PodHandoff CRD over an Understudy installation. The two
+projects use distinct resources and webhooks. See [UPSTREAM.md](UPSTREAM.md)
+for the imported baseline and divergence record. The version-specific notes
+below are historical migration references; they are not a recommendation to
+upgrade a production cluster to this prerelease.
 
-## Imported historical notes
-
-The remaining notes describe the inherited upstream behavior and are retained
-only for provenance.
+## Historical PodHandoff version notes
 
 ## 0.4.0 to 0.4.1
 
@@ -25,8 +23,8 @@ took evictions hostage, and there is no budget any more.
 
 Nothing breaks. Both fields are accepted, `holdMode` wins when both are
 set, and a resource that sets only the old one keeps working while the
-operator raises a single warning event against it. The field will be
-removed in a later release, so rename at your convenience:
+operator raises a single warning event against it. The old field is
+deprecated; rename it when convenient:
 
 ```sh
 kubectl get podhandoffs -A \
@@ -92,8 +90,9 @@ one to alert on.
 Protection now depends on the API server reaching the webhook. That is the
 default nearly everywhere, but a private control plane with narrow security
 groups can block it, and because the webhook fails open the result looks
-exactly like a healthy install with nothing to do. The check is in
-[Requirements](README.md#requirements); run it once after upgrading.
+exactly like a healthy install with nothing to do. The webhook architecture
+and its fail-open tradeoff are described in
+[the architecture guide](docs/architecture.md).
 
 Operator downtime now means no protection, immediately, where a budget
 would have kept blocking. That is the deliberate trade for never wedging a

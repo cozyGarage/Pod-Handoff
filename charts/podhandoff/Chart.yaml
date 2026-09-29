@@ -1,8 +1,8 @@
 apiVersion: v2
 name: podhandoff
 description: >-
-  Readiness-gated Pod handoff for single-replica Kubernetes Deployments during
-  announced node disruptions, without a standing second application replica.
+  Educational Go operator demonstrating custom resources, reconciliation, and
+  eviction admission during announced Kubernetes node disruptions.
 type: application
 version: 0.1.0
 appVersion: "0.1.0"
@@ -46,9 +46,8 @@ annotations:
       name: podhandoffs.apps.podhandoff.io
       displayName: PodHandoff
       description: >-
-        Protects a single-replica Deployment by bringing up a stand-in pod when
-        its node is doomed and holding the eviction until the stand-in serves
-        traffic.
+        Demonstrates coordinating a Deployment replacement and Pod eviction
+        through a custom resource, controller, and admission webhook.
   artifacthub.io/crdsExamples: |
     - apiVersion: apps.podhandoff.io/v1alpha1
       kind: PodHandoff
